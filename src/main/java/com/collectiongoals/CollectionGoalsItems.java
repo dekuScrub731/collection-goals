@@ -1,11 +1,14 @@
 package com.collectiongoals;
 
+import net.runelite.api.ItemID;
+
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class CollectionGoalsItems {
 
-    static CollectionGoalsItem ZAMORAKIAN_SPEAR = new CollectionGoalsItem("Zamorakian spear", -1, "K'ril Tsutsaroth", 1f/127);
+    static CollectionGoalsItem ZAMORAKIAN_SPEAR = new CollectionGoalsItem("Zamorakian spear", ItemID.ZAMORAKIAN_SPEAR, "K'ril Tsutsaroth", 1f/127);
     static List<CollectionGoalsItem> ALL_ITEMS = new ArrayList<CollectionGoalsItem>() {};
 
     static{

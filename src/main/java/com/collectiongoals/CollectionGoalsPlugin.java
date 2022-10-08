@@ -3,16 +3,21 @@ package com.collectiongoals;
 import com.google.inject.Provides;
 
 import javax.inject.Inject;
+import javax.swing.*;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.hiscore.HiscoreClient;
 import net.runelite.client.hiscore.HiscoreResult;
 import net.runelite.client.hiscore.HiscoreSkill;
@@ -20,10 +25,13 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,8 +48,19 @@ public class CollectionGoalsPlugin extends Plugin {
     private static final String COLLECTION_LOG_TEXT = "New item added to your collection log: ";
     private static final Pattern NUMBER_PATTERN = Pattern.compile("([0-9]+)");
 
+    @Getter
+    @Setter
+    private List<CollectionGoalsItem> items = new ArrayList<>();
+
+
     @Inject
     private Client client;
+
+    @Inject
+    private ClientThread clientThread;
+
+    @Inject
+    private ItemManager itemManager;
 
     @Inject
     private ConfigManager configManager;
@@ -306,6 +325,63 @@ public class CollectionGoalsPlugin extends Plugin {
 
         return percentComplete;
     }
+
+
+
+    public void addItem(CollectionGoalsItem item)
+    {
+        clientThread.invokeLater(() ->
+        {
+            if (!containsItem(item))
+            {
+                items.add(item);
+                //TODO: dataManager.saveData();
+                SwingUtilities.invokeLater(() ->
+                {
+                    panel.switchToProgress();
+                    panel.updateProgressPanels();
+                });
+            }
+            else
+            {
+                SwingUtilities.invokeLater(() -> panel.containsItemWarning());
+            }
+        });
+    }
+
+    public void removeItem(CollectionGoalsItem item)
+    {
+        clientThread.invokeLater(() -> {
+            items.remove(item);
+            //TODO: dataManager.saveData();
+            SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
+        });
+    }
+
+
+
+
+
+
+
+
+
+
+    private boolean containsItem(CollectionGoalsItem newItem)
+    {
+        return items.contains(newItem);
+    }
+
+
+    public AsyncBufferedImage getImage (CollectionGoalsItem item) {
+        return itemManager.getImage(item.getId());
+    }
+
+
+
+
+
+
 
 
 

@@ -36,6 +36,8 @@ package com.collectiongoals;
         import java.util.ArrayList;
         import java.util.List;
 
+        import static com.collectiongoals.CollectionGoalsItems.ALL_ITEMS;
+
 
 public class CollectionGoalsPluginPanel extends PluginPanel
 {
@@ -72,7 +74,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
     private final PluginErrorPanel searchErrorPanel = new PluginErrorPanel();
     private final GridBagConstraints constraints = new GridBagConstraints();
 
-    //private final List<PurchaseProgressItem> searchItems = new ArrayList<>();
+    private final List<CollectionGoalsItem> searchItems = new ArrayList<>();
 
     static
     {
@@ -222,7 +224,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
             {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER)
                 {
-                    //searchForItems();
+                    searchForItems();
                 }
             }
 
@@ -243,7 +245,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         container.add(centerPanel, BorderLayout.CENTER);
         add(container, BorderLayout.CENTER);
     }
-/*
+
     private void searchForItems()
     {
         searchResultsPanel.removeAll();
@@ -254,7 +256,8 @@ public class CollectionGoalsPluginPanel extends PluginPanel
             return;
         }
 
-        List<ItemPrice> results = itemManager.search(searchBar.getText());
+        List<CollectionGoalsItem> results = search(searchBar.getText());
+
         if (results.isEmpty())
         {
             searchErrorPanel.setContent("No results found", "No items were found with that name, please try again");
@@ -266,35 +269,37 @@ public class CollectionGoalsPluginPanel extends PluginPanel
     }
 
 
-    private void processResults(List<ItemPrice> results)
+    private void processResults(List<CollectionGoalsItem> results)
     {
         searchItems.clear();
         searchCard.show(searchCenterPanel, RESULTS_PANEL);
 
         int count = 0;
-        boolean useActivelyTradedPrice = runeLiteConfig.useWikiItemPrices();
+        //boolean useActivelyTradedPrice = runeLiteConfig.useWikiItemPrices();
 
         // Add each result to items list
-        for (ItemPrice item : results)
+        for (CollectionGoalsItem item : results)
         {
             if (count++ > MAX_SEARCH_ITEMS)
             {
                 break;
             }
 
-            int itemId = item.getId();
-            AsyncBufferedImage itemImage = itemManager.getImage(itemId);
-            int itemPrice = useActivelyTradedPrice ? itemManager.getWikiPrice(item) : item.getPrice();
-            searchItems.add(new PurchaseProgressItem(itemImage, item.getName(), itemId, itemPrice));
+            searchItems.add(item);
         }
 
         // Add each item in list to panel
         SwingUtilities.invokeLater(() ->
         {
             int index = 0;
-            for (PurchaseProgressItem item : searchItems)
+            for (CollectionGoalsItem item : searchItems)
             {
-                PurchaseProgressResultPanel panel = new PurchaseProgressResultPanel(plugin, item);
+
+
+                int itemId = item.getId();
+                AsyncBufferedImage itemImage = itemManager.getImage(itemId);
+
+                CollectionGoalsResultPanel panel = new CollectionGoalsResultPanel(plugin, item);
 
                 if (index++ > 0)
                 {
@@ -319,15 +324,15 @@ public class CollectionGoalsPluginPanel extends PluginPanel
     {
         progressPanel.removeAll();
 
-        updateValue();
+        //updateValue();
         progressPanel.add(value);
 
         constraints.gridy++;
 
         int index = 0;
-        for (PurchaseProgressItem item : plugin.getItems())
+        for (CollectionGoalsItem item : plugin.getItems())
         {
-            PurchaseProgressItemPanel panel = new PurchaseProgressItemPanel(plugin, item);
+            CollectionGoalsItemPanel panel = new CollectionGoalsItemPanel(plugin, item);
 
             if (index++ > 0)
             {
@@ -347,6 +352,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         validate();
     }
 
+    /*
     private void updateValue()
     {
         long progressValue = plugin.getValue();
@@ -359,7 +365,8 @@ public class CollectionGoalsPluginPanel extends PluginPanel
             value.setText("Value: " + QuantityFormatter.formatNumber(plugin.getValue()) + " gp");
         }
     }
-    */
+     */
+
 
     public void containsItemWarning()
     {
@@ -380,4 +387,48 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         cancelItem.setVisible(true);
         centerCard.show(centerPanel, SEARCH_PANEL);
     }
+
+
+
+
+
+
+
+    /**
+     * Search for collection log items based on item name
+     *
+     * @param itemName item name
+     * @return
+     */
+    public List<CollectionGoalsItem> search(String itemName)
+    {
+        itemName = itemName.toLowerCase();
+
+        List<CollectionGoalsItem> result = new ArrayList<>();
+
+        for (CollectionGoalsItem item : ALL_ITEMS)
+        {
+            final String name = item.getName();
+            if (name.toLowerCase().contains(itemName))
+            {
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
