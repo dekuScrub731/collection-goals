@@ -8,11 +8,12 @@ import java.util.List;
 
 public class CollectionGoalsItems {
 
-    static CollectionGoalsItem ZAMORAKIAN_SPEAR = new CollectionGoalsItem("Zamorakian spear", ItemID.ZAMORAKIAN_SPEAR, "K'ril Tsutsaroth", 1f/127);
+
     static List<CollectionGoalsItem> ALL_ITEMS = new ArrayList<CollectionGoalsItem>() {};
 
-    static{
-        ALL_ITEMS.add(ZAMORAKIAN_SPEAR);
+    static {
+        ALL_ITEMS.add(new CollectionGoalsItem("Zamorakian spear", ItemID.ZAMORAKIAN_SPEAR, "K'ril Tsutsaroth", "1/20"));
+        ALL_ITEMS.add(new CollectionGoalsItem("Bandos tassets", ItemID.BANDOS_TASSETS, "General Graardor", "1/381"));
 
     }
 

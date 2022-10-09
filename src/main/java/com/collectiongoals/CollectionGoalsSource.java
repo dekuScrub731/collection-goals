@@ -9,5 +9,5 @@ import lombok.Setter;
 @Setter
 public class CollectionGoalsSource {
     String name;
-    double rate;
+    String rate;
 }

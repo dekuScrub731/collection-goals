@@ -21,6 +21,11 @@ import java.awt.image.BufferedImage;
 
 public class CollectionGoalsItemPanel extends JPanel
 {
+    private Color UNDER_RATE = new Color(80, 80, 80);
+    private Color OVER_RATE = new Color(110, 110, 0);
+    private Color TWICE_RATE = new Color(100, 0, 0);
+    private Color COMPLETE = new Color(10, 90, 40);
+
     private static final String DELETE_TITLE = "Warning";
     private static final String DELETE_MESSAGE = "Are you sure you want to delete this progress item?";
     private static final ImageIcon DELETE_ICON;
@@ -28,6 +33,7 @@ public class CollectionGoalsItemPanel extends JPanel
     private static final Dimension IMAGE_SIZE = new Dimension(32, 32);
 
     private float percent;
+    private float progressPercent;
 
     static
     {
@@ -65,20 +71,29 @@ public class CollectionGoalsItemPanel extends JPanel
         rightPanel.add(itemName);
 
         // GE Price
-        JLabel gePriceLabel = new JLabel();
-        gePriceLabel.setText("N/A");
+        JLabel dropRate = new JLabel();
 
-        gePriceLabel.setForeground(ColorScheme.GRAND_EXCHANGE_PRICE);
-        rightPanel.add(gePriceLabel);
+
+
+        dropRate.setText(item.getRateString());
+
+        dropRate.setForeground(ColorScheme.GRAND_EXCHANGE_PRICE);
+        rightPanel.add(dropRate);
 
         // Purchase Progress
         JLabel progressLabel = new JLabel();
-        percent = ((float) 50 * 100);//TODO
-        if (percent >= 100)
-        {
-            percent = 100;
+        percent = plugin.getPercentProgress(item.getName());
+        progressPercent = percent;
+
+        if (progressPercent >= 100) {
+            progressPercent = 100;
         }
-        progressLabel.setText(String.format("%.0f", percent) + "%");
+
+
+
+
+
+        progressLabel.setText(String.valueOf(plugin.getKillcount(item.getName())) + " kills");
         rightPanel.add(progressLabel);
 
         // Remove Button
@@ -127,15 +142,27 @@ public class CollectionGoalsItemPanel extends JPanel
     @Override
     protected void paintComponent(Graphics g)
     {
-        g.setColor(new Color(12, 85, 35));
-        float greenPercent = this.getWidth() * percent / 100;
-        int greenWidth = (int) greenPercent;
-        g.fillRect(0, 0, greenWidth, this.getHeight());
+        g.setColor(UNDER_RATE);
 
-        if (greenWidth != this.getWidth())
+        if (percent >= 100 && percent < 200)
+        {
+            g.setColor(OVER_RATE);
+        }
+        else if (percent >= 200)
+        {
+            g.setColor(TWICE_RATE);
+        }
+
+        //TODO: if complete, set to COMPLETE
+
+        float barPercent = this.getWidth() * progressPercent / 100;
+        int barWidth = (int) barPercent;
+        g.fillRect(0, 0, barWidth, this.getHeight());
+
+        if (barWidth != this.getWidth())
         {
             g.setColor(ColorScheme.DARKER_GRAY_COLOR);
-            g.fillRect(greenWidth, 0, this.getWidth() - greenWidth, this.getHeight());
+            g.fillRect(barWidth, 0, this.getWidth() - barWidth, this.getHeight());
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.collectiongoals;
 
+import com.google.gson.Gson;
 import com.google.inject.Provides;
 
 import javax.inject.Inject;
@@ -52,6 +53,12 @@ public class CollectionGoalsPlugin extends Plugin {
     @Setter
     private List<CollectionGoalsItem> items = new ArrayList<>();
 
+    @Getter
+    @Setter
+    private long value = 0;
+
+    @Inject
+    private CollectionGoalsDataManager dataManager;
 
     @Inject
     private Client client;
@@ -64,6 +71,9 @@ public class CollectionGoalsPlugin extends Plugin {
 
     @Inject
     private ConfigManager configManager;
+
+    @Inject
+    private Gson gson;
 
     @Inject
     private HiscoreClient hiscoreClient;
@@ -106,20 +116,23 @@ public class CollectionGoalsPlugin extends Plugin {
         result.getSkill(HiscoreSkill.CLUE_SCROLL_ELITE);
         result.getSkill(HiscoreSkill.CLUE_SCROLL_MASTER);
         result.getSkill(HiscoreSkill.CLUE_SCROLL_ALL);
+        */
 
 
 
 
 
-		this.dataManager = new PurchaseProgressDataManager(this, configManager, itemManager, gson);
+		this.dataManager = new CollectionGoalsDataManager(this, configManager, itemManager, gson);
 
 		clientThread.invokeLater(() ->
 		{
 			dataManager.loadData();
-			updateItemPrices();
+            SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
 		});
 
- */
+
+
+
     }
 
     @Override
@@ -132,6 +145,17 @@ public class CollectionGoalsPlugin extends Plugin {
         if (gameStateChanged.getGameState() == GameState.LOGGED_IN) {
             log.info("Percent Complete = " + getPercentProgress("Zamorakian spear"));
             //client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Example says " + config.greeting(), null);
+
+            clientThread.invokeLater(() ->
+            {
+                SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
+            });
+
+
+
+
+
+
         }
     }
 
@@ -307,23 +331,23 @@ public class CollectionGoalsPlugin extends Plugin {
         */
     }
 
-    private int getKillcount(String boss)
+    public int getKillcount(String boss)
     {
         Integer killCount = configManager.getRSProfileConfiguration(KILLCOUNT, boss.toLowerCase(), int.class);
         //log.info("Killcount for " + boss + " = " + killCount);
         return killCount == null ? 0 : killCount;
     }
 
-    private double getPercentProgress(String itemName) {
-        double percentComplete = 0f;
+    public float getPercentProgress(String itemName) {
+        float percentComplete = 0f;
 
         CollectionGoalsItem item = CollectionGoalsItems.getItemByName(itemName);
         for (CollectionGoalsSource source : item.getSources()) {
             //log.info(String.valueOf(source.getRate()));
-            percentComplete += source.getRate() * (float) getKillcount(source.getName());
+            percentComplete += parseDropRate(source.getRate()) * (float) getKillcount(source.getName());
         }
 
-        return percentComplete;
+        return percentComplete * 100f;
     }
 
 
@@ -335,7 +359,7 @@ public class CollectionGoalsPlugin extends Plugin {
             if (!containsItem(item))
             {
                 items.add(item);
-                //TODO: dataManager.saveData();
+                dataManager.saveData();
                 SwingUtilities.invokeLater(() ->
                 {
                     panel.switchToProgress();
@@ -353,23 +377,20 @@ public class CollectionGoalsPlugin extends Plugin {
     {
         clientThread.invokeLater(() -> {
             items.remove(item);
-            //TODO: dataManager.saveData();
+            dataManager.saveData();
             SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
         });
     }
 
 
-
-
-
-
-
-
-
-
     private boolean containsItem(CollectionGoalsItem newItem)
     {
-        return items.contains(newItem);
+        for (CollectionGoalsItem item : items) {
+            if (item.getId() == newItem.getId()) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
@@ -379,8 +400,14 @@ public class CollectionGoalsPlugin extends Plugin {
 
 
 
-
-
+    double parseDropRate(String ratio) {
+        if (ratio.contains("/")) {
+            String[] rat = ratio.split("/");
+            return Double.parseDouble(rat[0]) / Double.parseDouble(rat[1]);
+        } else {
+            return Double.parseDouble(ratio);
+        }
+    }
 
 
 
