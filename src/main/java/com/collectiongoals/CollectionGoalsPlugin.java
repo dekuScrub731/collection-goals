@@ -434,6 +434,12 @@ public class CollectionGoalsPlugin extends Plugin {
 
 
 
+    // when collection log is open, check to see what we have as goals, and update
+
+    //log warning if no data inferred?
+
+
+
 
 
 

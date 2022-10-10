@@ -18,22 +18,16 @@ import static com.collectiongoals.CollectionGoalsPlugin.CONFIG_GROUP;
 @Slf4j
 public class CollectionGoalsDataManager
 {
-    private static final String CONFIG_KEY_VALUE = "value";
-    private static final String CONFIG_KEY_ITEMIDS = "itemIds";
+    private static final String CONFIG_KEY_ITEMIDS = "userLogData";
 
     private final CollectionGoalsPlugin plugin;
     private final ConfigManager configManager;
     private final ItemManager itemManager;
     private final Gson gson;
 
-    private final Type itemsType = new TypeToken<ArrayList<Integer>>(){}.getType();
-    private final Type itemsType2 = new TypeToken<HashMap<Integer, Integer>>(){}.getType();
 
-    private List<Integer> itemIds = new ArrayList<>();
-    private HashMap<Integer, Integer> collectionProgress = new HashMap<Integer, Integer>();
-
-
-
+    private final Type userLogDataType = new TypeToken<ArrayList<CollectionGoalsLogItem>>(){}.getType();
+    private List<CollectionGoalsLogItem> userLogData = new ArrayList<>();
 
     @Inject
     public CollectionGoalsDataManager(CollectionGoalsPlugin plugin, ConfigManager configManager, ItemManager itemManager, Gson gson)
@@ -46,17 +40,9 @@ public class CollectionGoalsDataManager
 
     public void loadData()
     {
-        //String value = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_VALUE);
-        //plugin.setValue(Long.parseLong(value));
-
-        collectionProgress.clear();
-        itemIds.clear();
-
+        userLogData.clear();
         String itemsJson = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS);
-        String itemsJson2 = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS+"2");
 
-
-//original block
         if (itemsJson == null || itemsJson.equals("[]"))
         {
             plugin.setItems(new ArrayList<>());
@@ -65,7 +51,7 @@ public class CollectionGoalsDataManager
         {
             try
             {
-                itemIds = (gson.fromJson(itemsJson, itemsType));
+                userLogData = (gson.fromJson(itemsJson, userLogDataType));
                 convertIds();
             }
             catch (Exception e)
@@ -74,42 +60,25 @@ public class CollectionGoalsDataManager
                 plugin.setItems(new ArrayList<>());
             }
         }
-
-//new block TODO
-
-
-
     }
 
     public void saveData()
     {
-        //configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_VALUE, String.valueOf(plugin.getValue()));
-
-        collectionProgress.clear();
-        itemIds.clear();
-
+        userLogData.clear();
         for (CollectionGoalsItem item : plugin.getItems())
         {
-            itemIds.add(item.getId());
-            collectionProgress.put(item.getId(), 0);//TODO: actual number received
+            userLogData.add(item.getUserLogData());
         }
-
-        final String itemsJson = gson.toJson(itemIds);
-        final String itemsJson2 = gson.toJson(collectionProgress);
-
+        final String itemsJson = gson.toJson(userLogData);
         configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS, itemsJson);
-        configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS+"2", itemsJson2);
     }
 
     private void convertIds()
     {
         List<CollectionGoalsItem> collectionItems = new ArrayList<>();
-
-        for (Integer itemId : itemIds)
-        {
-            collectionItems.add(new CollectionGoalsItem(itemId));
+        for (CollectionGoalsLogItem logItem : userLogData) {
+            collectionItems.add(new CollectionGoalsItem(logItem));
         }
-
         plugin.setItems(collectionItems);
     }
 }
