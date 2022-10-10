@@ -7,6 +7,7 @@ import javax.inject.Inject;
 import javax.swing.*;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
@@ -20,25 +21,22 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.hiscore.HiscoreClient;
-import net.runelite.client.hiscore.HiscoreResult;
-import net.runelite.client.hiscore.HiscoreSkill;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
-import net.runelite.client.util.Text;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
 @PluginDescriptor(
-        name = "Example"
+        name = "Collection Goals"
 )
 public class CollectionGoalsPlugin extends Plugin {
 
@@ -49,13 +47,11 @@ public class CollectionGoalsPlugin extends Plugin {
     private static final String COLLECTION_LOG_TEXT = "New item added to your collection log: ";
     private static final Pattern NUMBER_PATTERN = Pattern.compile("([0-9]+)");
 
-    @Getter
-    @Setter
-    private List<CollectionGoalsItem> items = new ArrayList<>();
+    private int shamanCount = 0;
 
     @Getter
     @Setter
-    private long value = 0;
+    private List<CollectionGoalsItem> items = new ArrayList<>();
 
     @Inject
     private CollectionGoalsDataManager dataManager;
@@ -143,7 +139,13 @@ public class CollectionGoalsPlugin extends Plugin {
     @Subscribe
     public void onGameStateChanged(GameStateChanged gameStateChanged) {
         if (gameStateChanged.getGameState() == GameState.LOGGED_IN) {
-            log.info("Percent Complete = " + getPercentProgress("Zamorakian spear"));
+
+            //log.info(String.valueOf(getKillcount("Zamorakian spear")) + " kills");
+
+
+
+
+            log.info("Percent Complete = " + getProgressRelativeToDropRate("Zamorakian spear"));
             //client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Example says " + config.greeting(), null);
 
             clientThread.invokeLater(() ->
@@ -168,6 +170,13 @@ public class CollectionGoalsPlugin extends Plugin {
     @Subscribe
     public void onConfigChanged(ConfigChanged configChanged)
     {
+        if (configChanged.getGroup().equals(CONFIG_GROUP))
+        {
+            clientThread.invokeLater(() -> {
+                SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
+            });
+        }
+
         if (configChanged.getGroup().equals(KILLCOUNT))
         {
             log.info("Killcount changed for " + configChanged.getKey() + ": " + configChanged.getNewValue());
@@ -338,7 +347,7 @@ public class CollectionGoalsPlugin extends Plugin {
         return killCount == null ? 0 : killCount;
     }
 
-    public float getPercentProgress(String itemName) {
+    public float getProgressRelativeToDropRate(String itemName) {
         float percentComplete = 0f;
 
         CollectionGoalsItem item = CollectionGoalsItems.getItemByName(itemName);
@@ -350,7 +359,21 @@ public class CollectionGoalsPlugin extends Plugin {
         return percentComplete * 100f;
     }
 
-
+    public float getDropChance(String itemName) {
+        float percentComplete = 0f;
+        CollectionGoalsItem item = CollectionGoalsItems.getItemByName(itemName);
+        if (item.getSources().size() > 1) {
+            return 0; //TODO: figure out how this math works...
+        }
+        else {
+            int kc = getKillcount(item.getSources().get(0).getName());
+            if (kc==0) {
+                return 0;
+            }
+            percentComplete = (float) Math.pow((1 - parseDropRate(item.getSources().get(0).getRate())), kc);
+        }
+        return (1-percentComplete) * 100f;
+    }
 
     public void addItem(CollectionGoalsItem item)
     {
@@ -408,6 +431,11 @@ public class CollectionGoalsPlugin extends Plugin {
             return Double.parseDouble(ratio);
         }
     }
+
+
+
+
+
 
 
 

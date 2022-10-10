@@ -3,7 +3,6 @@ package com.collectiongoals;
 
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.util.ImageUtil;
-import net.runelite.client.util.QuantityFormatter;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -19,8 +18,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 
+import static com.collectiongoals.CollectionGoalsConfig.progressMethod.*;
+
 public class CollectionGoalsItemPanel extends JPanel
 {
+
+    //TODO: Move to config.
     private Color UNDER_RATE = new Color(80, 80, 80);
     private Color OVER_RATE = new Color(110, 110, 0);
     private Color TWICE_RATE = new Color(100, 0, 0);
@@ -34,6 +37,8 @@ public class CollectionGoalsItemPanel extends JPanel
 
     private float percent;
     private float progressPercent;
+    private Color barColor = UNDER_RATE;
+    private String percentText;
 
     static
     {
@@ -42,7 +47,7 @@ public class CollectionGoalsItemPanel extends JPanel
         DELETE_HOVER_ICON = new ImageIcon(ImageUtil.alphaOffset(deleteImage, 0.53f));
     }
 
-    CollectionGoalsItemPanel(CollectionGoalsPlugin plugin, CollectionGoalsItem item)
+    CollectionGoalsItemPanel(CollectionGoalsPlugin plugin, CollectionGoalsConfig config, CollectionGoalsItem item)
     {
         BorderLayout layout = new BorderLayout();
         layout.setHgap(5);
@@ -59,7 +64,7 @@ public class CollectionGoalsItemPanel extends JPanel
         add(itemImage, BorderLayout.LINE_START);
 
         // Item Details Panel
-        JPanel rightPanel = new JPanel(new GridLayout(3, 1));
+        JPanel rightPanel = new JPanel(new GridLayout(4, 1));
         rightPanel.setBackground(new Color(0, 0, 0, 0));
 
         // Item Name
@@ -70,31 +75,71 @@ public class CollectionGoalsItemPanel extends JPanel
         itemName.setText(item.getName());
         rightPanel.add(itemName);
 
-        // GE Price
+        // Drop Rate
         JLabel dropRate = new JLabel();
-
-
-
         dropRate.setText(item.getRateString());
-
         dropRate.setForeground(ColorScheme.GRAND_EXCHANGE_PRICE);
         rightPanel.add(dropRate);
 
-        // Purchase Progress
-        JLabel progressLabel = new JLabel();
-        percent = plugin.getPercentProgress(item.getName());
-        progressPercent = percent;
+        // Source/KC
+        JLabel killCount = new JLabel();
 
+        //Determine percent progress relative to drop rate first
+        // This allows for color coding to come into play
+        percent = plugin.getProgressRelativeToDropRate(item.getName());
+        percentText = String.format("%.2f", percent) + "% of Drop Rate";
+        progressPercent = percent;
         if (progressPercent >= 100) {
             progressPercent = 100;
         }
 
+        //Logic for bar color (based on progress toward drop rate)
+        if (percent >= 200) {
+            barColor = TWICE_RATE;
+        }
+        else if (percent >= 100)
+        {
+            barColor = OVER_RATE;
+        }
+
+        //TODO: if complete, set to COMPLETE
+
+        //Only replace if the config dictates
+        if (config.progressMethod().equals(DROP_CHANCE)) {
+            percent = plugin.getDropChance(item.getName());
+            percentText = String.format("%.2f", percent) + "% Chance of Drop";
+            progressPercent = percent;
+
+            if (progressPercent >= 100) {
+                progressPercent = 100;
+            }
+        }
+
+        //TODO: for/if/then on multiple sources
+        String sourceName = item.getSources().get(0).getName();
+        String killInfo = sourceName + " (" + String.valueOf(plugin.getKillcount(sourceName)) + " kills)";
+
+        killCount.setText(killInfo);
+        rightPanel.add(killCount);
 
 
 
 
-        progressLabel.setText(String.valueOf(plugin.getKillcount(item.getName())) + " kills");
+
+
+
+
+        // Progress
+        JLabel progressLabel = new JLabel();
+        progressLabel.setText(percentText);
+        progressLabel.setForeground(Color.WHITE);
         rightPanel.add(progressLabel);
+
+
+
+
+
+
 
         // Remove Button
         JPanel deletePanel = new JPanel(new BorderLayout());
@@ -142,18 +187,9 @@ public class CollectionGoalsItemPanel extends JPanel
     @Override
     protected void paintComponent(Graphics g)
     {
-        g.setColor(UNDER_RATE);
 
-        if (percent >= 100 && percent < 200)
-        {
-            g.setColor(OVER_RATE);
-        }
-        else if (percent >= 200)
-        {
-            g.setColor(TWICE_RATE);
-        }
+        g.setColor(barColor);
 
-        //TODO: if complete, set to COMPLETE
 
         float barPercent = this.getWidth() * progressPercent / 100;
         int barWidth = (int) barPercent;

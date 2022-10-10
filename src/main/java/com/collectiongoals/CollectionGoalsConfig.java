@@ -1,19 +1,40 @@
 package com.collectiongoals;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
-@ConfigGroup("example")
+import static com.collectiongoals.CollectionGoalsPlugin.CONFIG_GROUP;
+
+@ConfigGroup(CONFIG_GROUP)
 public interface CollectionGoalsConfig extends Config
 {
-	@ConfigItem(
-		keyName = "greeting",
-		name = "Welcome Greeting",
-		description = "The message to show to the user when they login"
-	)
-	default String greeting()
+
+	@Getter
+	@RequiredArgsConstructor
+	enum progressMethod
 	{
-		return "Hello";
+		DROP_RATE("Drop Rate"),
+		DROP_CHANCE("Drop Chance");
+		private final String value;
 	}
+
+
+
+
+	@ConfigItem(
+			keyName = "progressMethod",
+			name = "Progress Method",
+			description = "Determines how progress is calculated",
+			position = 1
+	)
+	default progressMethod progressMethod()
+	{
+		return progressMethod.DROP_RATE;
+	}
+
+
+
 }

@@ -10,6 +10,7 @@ import net.runelite.client.util.AsyncBufferedImage;
 import javax.inject.Inject;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static com.collectiongoals.CollectionGoalsPlugin.CONFIG_GROUP;
@@ -26,8 +27,13 @@ public class CollectionGoalsDataManager
     private final Gson gson;
 
     private final Type itemsType = new TypeToken<ArrayList<Integer>>(){}.getType();
+    private final Type itemsType2 = new TypeToken<HashMap<Integer, Integer>>(){}.getType();
 
     private List<Integer> itemIds = new ArrayList<>();
+    private HashMap<Integer, Integer> collectionProgress = new HashMap<Integer, Integer>();
+
+
+
 
     @Inject
     public CollectionGoalsDataManager(CollectionGoalsPlugin plugin, ConfigManager configManager, ItemManager itemManager, Gson gson)
@@ -40,12 +46,17 @@ public class CollectionGoalsDataManager
 
     public void loadData()
     {
-        String value = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_VALUE);
-        plugin.setValue(Long.parseLong(value));
+        //String value = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_VALUE);
+        //plugin.setValue(Long.parseLong(value));
 
+        collectionProgress.clear();
         itemIds.clear();
 
         String itemsJson = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS);
+        String itemsJson2 = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS+"2");
+
+
+//original block
         if (itemsJson == null || itemsJson.equals("[]"))
         {
             plugin.setItems(new ArrayList<>());
@@ -63,20 +74,31 @@ public class CollectionGoalsDataManager
                 plugin.setItems(new ArrayList<>());
             }
         }
+
+//new block TODO
+
+
+
     }
 
     public void saveData()
     {
-        configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_VALUE, String.valueOf(plugin.getValue()));
+        //configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_VALUE, String.valueOf(plugin.getValue()));
 
+        collectionProgress.clear();
         itemIds.clear();
+
         for (CollectionGoalsItem item : plugin.getItems())
         {
             itemIds.add(item.getId());
+            collectionProgress.put(item.getId(), 0);//TODO: actual number received
         }
 
         final String itemsJson = gson.toJson(itemIds);
+        final String itemsJson2 = gson.toJson(collectionProgress);
+
         configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS, itemsJson);
+        configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS+"2", itemsJson2);
     }
 
     private void convertIds()

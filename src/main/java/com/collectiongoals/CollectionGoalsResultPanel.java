@@ -87,11 +87,10 @@ public class CollectionGoalsResultPanel extends JPanel
         rightPanel.add(itemName);
 
         // GE Price
-        JLabel gePriceLabel = new JLabel();
-        gePriceLabel.setText("N/A");
-
-        gePriceLabel.setForeground(ColorScheme.GRAND_EXCHANGE_PRICE);
-        rightPanel.add(gePriceLabel);
+        JLabel dropRateLabel = new JLabel();
+        dropRateLabel.setText(item.getRateString());
+        dropRateLabel.setForeground(ColorScheme.GRAND_EXCHANGE_PRICE);
+        rightPanel.add(dropRateLabel);
 
         add(rightPanel, BorderLayout.CENTER);
     }

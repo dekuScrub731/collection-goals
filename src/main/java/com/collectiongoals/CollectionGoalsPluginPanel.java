@@ -54,6 +54,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
     private static final int MAX_SEARCH_ITEMS = 100;
 
     private final CollectionGoalsPlugin plugin;
+    private CollectionGoalsConfig config;
     private final ClientThread clientThread;
     private final ItemManager itemManager;
     private final RuneLiteConfig runeLiteConfig;
@@ -88,10 +89,11 @@ public class CollectionGoalsPluginPanel extends PluginPanel
     }
 
     @Inject
-    CollectionGoalsPluginPanel(CollectionGoalsPlugin plugin, ClientThread clientThread, ItemManager itemManager, RuneLiteConfig runeLiteConfig)
+    CollectionGoalsPluginPanel(CollectionGoalsPlugin plugin, CollectionGoalsConfig config, ClientThread clientThread, ItemManager itemManager, RuneLiteConfig runeLiteConfig)
     {
         super(false);
         this.plugin = plugin;
+        this.config = config;
         this.clientThread = clientThread;
         this.itemManager = itemManager;
         this.runeLiteConfig = runeLiteConfig;
@@ -332,11 +334,11 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         int index = 0;
         for (CollectionGoalsItem item : plugin.getItems())
         {
-            CollectionGoalsItemPanel panel = new CollectionGoalsItemPanel(plugin, item);
+            CollectionGoalsItemPanel panel = new CollectionGoalsItemPanel(plugin, config, item);
 
             if (index++ > 0)
             {
-                JPanel marginWrapper = new JPanel(new BorderLayout());
+               JPanel marginWrapper = new JPanel(new BorderLayout());
                 marginWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
                 marginWrapper.add(panel, BorderLayout.NORTH);
                 progressPanel.add(marginWrapper, constraints);
