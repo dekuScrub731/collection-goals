@@ -353,6 +353,7 @@ public class CollectionGoalsPlugin extends Plugin {
         CollectionGoalsItem item = CollectionGoalsItems.getItemByName(itemName);
         for (CollectionGoalsSource source : item.getSources()) {
             //log.info(String.valueOf(source.getRate()));
+            //todo: this math needs looking at as well
             percentComplete += parseDropRate(source.getRate()) * (float) getKillcount(source.getName());
         }
 

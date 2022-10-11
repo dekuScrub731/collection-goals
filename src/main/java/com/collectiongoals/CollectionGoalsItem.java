@@ -1,6 +1,6 @@
 package com.collectiongoals;
 
-import lombok.AllArgsConstructor;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,28 +17,10 @@ private String name;
 private int id;
 private List<CollectionGoalsSource> sources;
 private String rateString;
-private CollectionGoalsLogItem userLogData;
+private List<CollectionGoalsLogItem> userLogData;
 
-    //TODO: save kc directly to this record, along with anything else... this will prevent the "no data" on RL start prior to login
-
-    public CollectionGoalsItem(String name, int id, List<CollectionGoalsSource> sources)
-    {
-        this.name = name;
-        this.id = id;
-        this.sources = sources;
-        String rateString = "";
-        for (int i=0; i<sources.size(); i++) {
-            if (i==0) {
-                rateString = sources.get(i).getRate();
-            }
-            else {
-                rateString += "; " + sources.get(i).getRate();
-            }
-        }
-        this.rateString = rateString;
-        this.userLogData = new CollectionGoalsLogItem(id);
-    }
-
+    // This constructor is used when adding a new item (single source)
+    // Log data will be blank until the user loads the collection log
     public CollectionGoalsItem(String name, int id, String dropSource, String dropRate)
     {
         this.name = name;
@@ -47,41 +29,58 @@ private CollectionGoalsLogItem userLogData;
         source.add(new CollectionGoalsSource(dropSource, dropRate));
         this.sources = source;
         this.rateString = dropRate;
-        this.userLogData = new CollectionGoalsLogItem(id);
+        List<CollectionGoalsLogItem> userData = new ArrayList<CollectionGoalsLogItem>() {} ;
+        userData.add(new CollectionGoalsLogItem(id, dropSource));
+        this.userLogData = userData;
     }
 
-    public CollectionGoalsItem(int id) {
-        for (CollectionGoalsItem item : ALL_ITEMS) {
-            if (item.getId()==id){
-                this.name = item.getName();
-                this.id = item.getId();
-                this.sources = item.getSources();
-                this.userLogData = new CollectionGoalsLogItem(id);
+    // This constructor is used when adding a new item (multiple sources)
+    // Log data will be blank until the user loads the collection log
+    public CollectionGoalsItem(String name, int id, List<CollectionGoalsSource> sources)
+    {
+        this.name = name;
+        this.id = id;
+        this.sources = sources;
+        this.rateString = "Multiple";
 
+        List<CollectionGoalsLogItem> userData = new ArrayList<CollectionGoalsLogItem>() {} ;
+        for (CollectionGoalsSource source : sources) {
+            userData.add(new CollectionGoalsLogItem(id, source.getName()));
+        }
+        this.userLogData = userData;
+    }
+
+
+
+
+
+
+
+
+
+
+    // This method is used to load data on startup/launch
+    // (including any log data that may have been saved)
+    public CollectionGoalsItem(int id, List<CollectionGoalsLogItem> userLogData) {
+        this.id = id;
+        this.userLogData = userLogData;
+        for (CollectionGoalsItem item : ALL_ITEMS) {
+            if (item.getId() == id) {
+                this.name = item.getName();
+                this.sources = item.getSources();
                 if (item.getSources().size()==1) {
                     this.rateString = item.getSources().get(0).getRate();
                 }
-
+                else {
+                    this.rateString = "Multiple Sources";
+                }
                 break;
             }
         }
     }
 
-    //New method for loading data
-    public CollectionGoalsItem(CollectionGoalsLogItem userLogData) {
-        for (CollectionGoalsItem item : ALL_ITEMS) {
-            if (item.getId()==userLogData.getId()){
-                this.name = item.getName();
-                this.id = item.getId();
-                this.sources = item.getSources();
-                this.userLogData = userLogData;
-                if (item.getSources().size()==1) {
-                    this.rateString = item.getSources().get(0).getRate();
-                }
-                break;
-            }
-        }
-    }
+
+
 
 
 

@@ -10,7 +10,6 @@ import net.runelite.client.util.AsyncBufferedImage;
 import javax.inject.Inject;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import static com.collectiongoals.CollectionGoalsPlugin.CONFIG_GROUP;
@@ -67,7 +66,9 @@ public class CollectionGoalsDataManager
         userLogData.clear();
         for (CollectionGoalsItem item : plugin.getItems())
         {
-            userLogData.add(item.getUserLogData());
+            for (CollectionGoalsLogItem logItem : item.getUserLogData()) {
+                userLogData.add(logItem);
+            }
         }
         final String itemsJson = gson.toJson(userLogData);
         configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS, itemsJson);
@@ -75,9 +76,28 @@ public class CollectionGoalsDataManager
 
     private void convertIds()
     {
+        List<CollectionGoalsLogItem> tempLogItems = new ArrayList<>();
         List<CollectionGoalsItem> collectionItems = new ArrayList<>();
+        List<Integer> collectionItemIDs = new ArrayList<>();
+
+        //build a list of the item IDs from log data
         for (CollectionGoalsLogItem logItem : userLogData) {
-            collectionItems.add(new CollectionGoalsItem(logItem));
+            if (!collectionItemIDs.contains(logItem.getId())) {
+                collectionItemIDs.add(logItem.getId());
+            } else {
+                log.info("Data already has " + logItem.getId());//TODO remove
+            }
+        }
+
+        //nested loop to build
+        for (int itemID : collectionItemIDs) {
+            for (CollectionGoalsLogItem logItem : userLogData) {
+                if (logItem.getId() == itemID) {
+                    tempLogItems.add(logItem);
+                }
+            }
+            collectionItems.add(new CollectionGoalsItem(itemID, tempLogItems));
+            tempLogItems.clear();
         }
         plugin.setItems(collectionItems);
     }

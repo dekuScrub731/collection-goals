@@ -44,17 +44,19 @@ public class CollectionGoalsItems {
 
 
         // MULTIPLE SOURCES
-        ALL_ITEMS.add(new CollectionGoalsItem("Dragon pickaxe", ItemID.DRAGON_PICKAXE, "Multiple", "0"));
+        //ALL_ITEMS.add(new CollectionGoalsItem("Dragon pickaxe", ItemID.DRAGON_PICKAXE, "Multiple", "Multiple Sources"));
 
 
-/*
+
         ALL_ITEMS.add(new CollectionGoalsItem("Dragon pickaxe", ItemID.DRAGON_PICKAXE, new ArrayList<CollectionGoalsSource>() {{
             add(new CollectionGoalsSource("Callisto", "1/170.7"));
             add(new CollectionGoalsSource("Venenatis", "1/170.7"));
             add(new CollectionGoalsSource("Vet'ion", "1/170.7"));
             add(new CollectionGoalsSource("Chaos Elemental", "1/256"));
             add(new CollectionGoalsSource("King Black Dragon", "1/1500"));
-        }}));*/
+        }}));
+
+
     }
 
 
