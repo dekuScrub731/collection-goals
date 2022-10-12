@@ -18,6 +18,7 @@ import static com.collectiongoals.CollectionGoalsPlugin.CONFIG_GROUP;
 public class CollectionGoalsDataManager
 {
     private static final String CONFIG_KEY_ITEMIDS = "userLogData";
+    private static final String CONFIG_USER_DATA = "userData";
 
     private final CollectionGoalsPlugin plugin;
     private final ConfigManager configManager;
@@ -27,6 +28,10 @@ public class CollectionGoalsDataManager
 
     private final Type userLogDataType = new TypeToken<ArrayList<CollectionGoalsLogItem>>(){}.getType();
     private List<CollectionGoalsLogItem> userLogData = new ArrayList<>();
+
+    private final Type userDataType = new TypeToken<ArrayList<CollectionGoalsItem>>(){}.getType();
+    //private List<CollectionGoalsItem> userData = new ArrayList<>();
+
 
     @Inject
     public CollectionGoalsDataManager(CollectionGoalsPlugin plugin, ConfigManager configManager, ItemManager itemManager, Gson gson)
@@ -72,11 +77,20 @@ public class CollectionGoalsDataManager
         }
         final String itemsJson = gson.toJson(userLogData);
         configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_ITEMIDS, itemsJson);
+
+
+        //todo - temp
+        final  String userItemsJson = gson.toJson(plugin.getItems());
+        configManager.setConfiguration(CONFIG_GROUP, CONFIG_USER_DATA, userItemsJson);
+
+
     }
 
     private void convertIds()
     {
-        List<CollectionGoalsLogItem> tempLogItems = new ArrayList<>();
+
+        //todo- problem?
+
         List<CollectionGoalsItem> collectionItems = new ArrayList<>();
         List<Integer> collectionItemIDs = new ArrayList<>();
 
@@ -91,14 +105,41 @@ public class CollectionGoalsDataManager
 
         //nested loop to build
         for (int itemID : collectionItemIDs) {
-            tempLogItems.clear();
-            for (CollectionGoalsLogItem logItem : userLogData) {
-                if (logItem.getId() == itemID) {
-                    tempLogItems.add(logItem);
-                }
-            }
-            collectionItems.add(new CollectionGoalsItem(itemID, tempLogItems));
+            log.info("loop check for item id" + String.valueOf(itemID));
+
+
+            log.info(gson.toJson(new CollectionGoalsItem(itemID, buildCollectionGoalsLog(itemID))));
+            collectionItems.add(new CollectionGoalsItem(itemID, buildCollectionGoalsLog(itemID)));
         }
         plugin.setItems(collectionItems);
+
+        log.info(gson.toJson(plugin.getItems()));//todo - show how it was loaded
     }
+
+    private List<CollectionGoalsLogItem> buildCollectionGoalsLog(int itemID) {
+        List<CollectionGoalsLogItem> tempLogItems = new ArrayList<>();
+
+        for (CollectionGoalsLogItem logItem : userLogData) {
+            log.info("log item id " + logItem.getId());
+            if (logItem.getId() == itemID) {
+                log.info("match");
+                log.info(String.valueOf(logItem.getId()));
+                tempLogItems.add(logItem);
+            }
+        }
+
+
+
+
+
+
+
+
+        return tempLogItems;
+    }
+
+
+
+
+
 }

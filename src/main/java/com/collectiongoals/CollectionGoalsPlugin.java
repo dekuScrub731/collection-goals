@@ -165,7 +165,7 @@ public class CollectionGoalsPlugin extends Plugin {
 
 
 
-            log.info("Percent Complete = " + getProgressRelativeToDropRate("Zamorakian spear"));
+            //log.info("Percent Complete = " + getProgressRelativeToDropRate("Zamorakian spear"));
             //client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Example says " + config.greeting(), null);
 
             update();
@@ -615,10 +615,9 @@ public class CollectionGoalsPlugin extends Plugin {
         Widget[] widgetItems = itemsContainer.getDynamicChildren();
         for (Widget widgetItem : widgetItems)
         {
-            int id = widgetItem.getItemId();
-            String name = itemManager.getItemComposition(id).getName();
-            int quantity = (widgetItem.getOpacity() == 0 ? widgetItem.getItemQuantity() : 0);
-            boolean obtained = (widgetItem.getOpacity() == 0);
+
+            updateLogDataFromWidget(widgetItem, entryTitle, mainKillcount, alternateKillcount);
+
 
 /*
             //todo: check here for error; don't think i can update what i'm iterating over
@@ -634,19 +633,7 @@ public class CollectionGoalsPlugin extends Plugin {
 
 */
 
-            //todo: check here for error; don't think i can update what i'm iterating over
-            // somehow the id is getting written to the next...
-            for (int i=0; i<getItems().size(); i++) {
-                if (getItems().get(i).getId() == id) {
-                    log.info(name + "id match: " + id);
-                    for (int j=0; j<getItems().get(i).getUserLogData().size(); j++) {
-                        if (getItems().get(i).getUserLogData().get(j).getSource().equalsIgnoreCase(entryTitle)) {
-                            log.info(name + "source match: " + entryTitle);
-                            getItems().get(i).getUserLogData().set(j, new CollectionGoalsLogItem(id, entryTitle, quantity, mainKillcount, alternateKillcount));
-                        }
-                    }
-                }
-            }
+
 
 
 
@@ -661,6 +648,37 @@ public class CollectionGoalsPlugin extends Plugin {
 
 
         //if id matches from logItems and plugin items, replace
+    }
+
+
+
+
+    private void updateLogDataFromWidget(Widget widgetItem, String entryTitle, int mainKillcount, int alternateKillcount) {
+
+        int id = widgetItem.getItemId();
+        String name = itemManager.getItemComposition(id).getName();
+        int quantity = (widgetItem.getOpacity() == 0 ? widgetItem.getItemQuantity() : 0);
+
+        //todo: check here for error; don't think i can update what i'm iterating over
+        // somehow the id is getting written to the next...
+        log.info("checking for updates for " + name + "("+id+")");//todo
+        for (int i=0; i<getItems().size(); i++) {
+            log.info("getitemsid="+String.valueOf(getItems().get(i).getId()));//todo
+            if (getItems().get(i).getId() == id) {
+                log.info(name + " id match: " + id);
+                for (int j=0; j<getItems().get(i).getUserLogData().size(); j++) {
+
+
+
+                    if (getItems().get(i).getUserLogData().get(j).getSource().equalsIgnoreCase(entryTitle)) {
+                        log.info(name + "source match: " + entryTitle);
+                        log.info(getItems().get(i).getName());//todo - i think this is the problem; we never chjeck name
+                        getItems().get(i).getUserLogData().set(j, new CollectionGoalsLogItem(id, entryTitle, quantity, mainKillcount, alternateKillcount));
+                        return;
+                    }
+                }
+            }
+        }
     }
 
 
