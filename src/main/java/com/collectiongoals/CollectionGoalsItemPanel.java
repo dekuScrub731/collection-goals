@@ -115,19 +115,21 @@ public class CollectionGoalsItemPanel extends JPanel
             }
         }
 
+        for (CollectionGoalsLogItem logItem: item.getUserLogData()) {
+            if (logItem.isObtained()) {
+                percent = 100;
+                percentText = item.getName();
+                progressPercent = percent;
+                barColor = COMPLETE;
+            }
+        }
+
         //TODO: for/if/then on multiple sources
         String sourceName = item.getSources().get(0).getName();
         String killInfo = sourceName + " (" + String.valueOf(plugin.getKillcount(sourceName)) + " kills)";
 
         killCount.setText(killInfo);
         rightPanel.add(killCount);
-
-
-
-
-
-
-
 
         // Progress
         JLabel progressLabel = new JLabel();

@@ -3,8 +3,10 @@ package com.collectiongoals;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class CollectionGoalsLogItem {
     private final int id;
     private final String source;

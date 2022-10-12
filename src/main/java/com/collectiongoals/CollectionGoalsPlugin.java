@@ -1,5 +1,6 @@
 package com.collectiongoals;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
 
@@ -13,8 +14,14 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.WorldType;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.ScriptPostFired;
+import net.runelite.api.events.WidgetLoaded;
+import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetID;
+import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -31,7 +38,9 @@ import net.runelite.client.util.ImageUtil;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -47,6 +56,17 @@ public class CollectionGoalsPlugin extends Plugin {
     private static final String COLLECTION_LOG_TEXT = "New item added to your collection log: ";
     private static final Pattern NUMBER_PATTERN = Pattern.compile("([0-9]+)");
 
+    private static final Pattern ADVENTURE_LOG_TITLE_PATTERN = Pattern.compile("The Exploits of (.+)");
+    private static final int ADVENTURE_LOG_COLLECTION_LOG_SELECTED_VARBIT_ID = 12061;
+
+
+    private static final int COLLECTION_LOG_CONTAINER = 1;
+    private static final int COLLECTION_LOG_DRAW_LIST_SCRIPT_ID = 2730;
+    private static final int COLLECTION_LOG_DEFAULT_HIGHLIGHT = 901389;
+    private static final int COLLECTION_LOG_ACTIVE_TAB_SPRITE_ID = 2283;
+
+
+    private boolean isPohOwner = false;
     private int shamanCount = 0;
 
     @Getter
@@ -148,10 +168,7 @@ public class CollectionGoalsPlugin extends Plugin {
             log.info("Percent Complete = " + getProgressRelativeToDropRate("Zamorakian spear"));
             //client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Example says " + config.greeting(), null);
 
-            clientThread.invokeLater(() ->
-            {
-                SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
-            });
+            update();
 
 
 
@@ -172,15 +189,21 @@ public class CollectionGoalsPlugin extends Plugin {
     {
         if (configChanged.getGroup().equals(CONFIG_GROUP))
         {
-            clientThread.invokeLater(() -> {
-                SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
-            });
+            update();
         }
 
         if (configChanged.getGroup().equals(KILLCOUNT))
         {
             log.info("Killcount changed for " + configChanged.getKey() + ": " + configChanged.getNewValue());
         }
+    }
+
+
+    public void update() {
+        clientThread.invokeLater(() -> {
+            SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
+        });
+        dataManager.saveData();
     }
 
     @Subscribe
@@ -438,6 +461,238 @@ public class CollectionGoalsPlugin extends Plugin {
     // when collection log is open, check to see what we have as goals, and update
 
     //log warning if no data inferred?
+
+
+    @Subscribe
+    public void onWidgetLoaded(WidgetLoaded widgetLoaded)
+    {
+        if (widgetLoaded.getGroupId() == WidgetID.ADVENTURE_LOG_ID)
+        {
+            Widget adventureLog = client.getWidget(WidgetInfo.ADVENTURE_LOG);
+            if (adventureLog == null)
+            {
+                return;
+            }
+
+            // Children are rendered on tick after widget load. Invoke later to prevent null children on adventure log widget
+            clientThread.invokeLater(() -> {
+                Matcher adventureLogUser = ADVENTURE_LOG_TITLE_PATTERN.matcher(adventureLog.getChild(1).getText());
+                if (adventureLogUser.find())
+                {
+                    isPohOwner = adventureLogUser.group(1).equals(client.getLocalPlayer().getName());
+                }
+            });
+        }
+    }
+
+    @Subscribe
+    public void onScriptPostFired(ScriptPostFired scriptPostFired)
+    {
+        if (scriptPostFired.getScriptId() == COLLECTION_LOG_DRAW_LIST_SCRIPT_ID)
+        {
+            clientThread.invokeLater(this::getEntry);
+        }
+    }
+
+
+
+
+    /**
+     * Load the current entry being viewed in the collection log
+     * and get/update relevant information contained in the entry
+     */
+    private void getEntry()
+    {
+        if (!isValidWorldType())
+        {
+            return;
+        }
+
+        boolean openedFromAdventureLog = client.getVarbitValue(ADVENTURE_LOG_COLLECTION_LOG_SELECTED_VARBIT_ID) != 0;
+        if (openedFromAdventureLog && !isPohOwner)
+        {
+            return;
+        }
+
+
+
+
+
+
+
+
+        String activeTabName = getActiveTabName();
+        if (activeTabName == null)
+        {
+            return;
+        }
+
+        Widget entryHead = client.getWidget(WidgetInfo.COLLECTION_LOG_ENTRY_HEADER);
+
+        if (entryHead == null)
+        {
+            return;
+        }
+
+        updateEntryItems(entryHead);
+
+        update();
+    }
+
+
+    private boolean isValidWorldType()
+    {
+        List<WorldType> invalidTypes = ImmutableList.of(
+                WorldType.DEADMAN,
+                WorldType.NOSAVE_MODE,
+                WorldType.SEASONAL,
+                WorldType.TOURNAMENT_WORLD
+        );
+
+        for (WorldType worldType : invalidTypes)
+        {
+            if (client.getWorldType().contains(worldType))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    private String getActiveTabName()
+    {
+        Widget tabsWidget = client.getWidget(WidgetInfo.COLLECTION_LOG_TABS);
+        if (tabsWidget == null)
+        {
+            return null;
+        }
+
+        Widget[] tabs = tabsWidget.getStaticChildren();
+        for (Widget tab : tabs)
+        {
+            Widget subTab = tab.getChild(0);
+
+            if (subTab.getSpriteId() == COLLECTION_LOG_ACTIVE_TAB_SPRITE_ID)
+            {
+                return tab.getName()
+                        .split(">")[1]
+                        .split("<")[0];
+            }
+        }
+
+        return null;
+    }
+
+
+
+
+
+//TODO: use this to log items
+    private void updateEntryItems(Widget categoryHead)
+    {
+
+        String entryTitle = categoryHead.getDynamicChildren()[0].getText();
+
+        //todo - figure out how to update based on collection log message
+        Widget itemsContainer = client.getWidget(WidgetInfo.COLLECTION_LOG_ENTRY_ITEMS);
+
+        if (itemsContainer == null)
+        {
+            return;
+        }
+
+        int mainKillcount = getKillcountLog(categoryHead, 0);
+        int alternateKillcount = getKillcountLog(categoryHead, 1);
+
+        //List<CollectionGoalsLogItem> logItems = new ArrayList<>();
+
+
+
+        //List <CollectionGoalsItem> tempGoalsItem =  new ArrayList<>(getItems());
+
+        Widget[] widgetItems = itemsContainer.getDynamicChildren();
+        for (Widget widgetItem : widgetItems)
+        {
+            int id = widgetItem.getItemId();
+            String name = itemManager.getItemComposition(id).getName();
+            int quantity = (widgetItem.getOpacity() == 0 ? widgetItem.getItemQuantity() : 0);
+            boolean obtained = (widgetItem.getOpacity() == 0);
+
+/*
+            //todo: check here for error; don't think i can update what i'm iterating over
+            for (CollectionGoalsItem goalsItem : getItems()) {
+                if (goalsItem.getId() == id) {
+                    for (CollectionGoalsLogItem logItem : goalsItem.getUserLogData()) {
+                        if (logItem.getSource().equalsIgnoreCase(entryTitle)) {
+                            logItem = new CollectionGoalsLogItem(id, entryTitle, quantity, mainKillcount, alternateKillcount);//todo - this item
+                        }
+                    }
+                }
+            }
+
+*/
+
+            //todo: check here for error; don't think i can update what i'm iterating over
+            // somehow the id is getting written to the next...
+            for (int i=0; i<getItems().size(); i++) {
+                if (getItems().get(i).getId() == id) {
+                    log.info(name + "id match: " + id);
+                    for (int j=0; j<getItems().get(i).getUserLogData().size(); j++) {
+                        if (getItems().get(i).getUserLogData().get(j).getSource().equalsIgnoreCase(entryTitle)) {
+                            log.info(name + "source match: " + entryTitle);
+                            getItems().get(i).getUserLogData().set(j, new CollectionGoalsLogItem(id, entryTitle, quantity, mainKillcount, alternateKillcount));
+                        }
+                    }
+                }
+            }
+
+
+
+
+
+
+
+
+        }
+
+
+
+
+        //if id matches from logItems and plugin items, replace
+    }
+
+
+//todo use this to update kc
+    private int getKillcountLog(Widget categoryHead, int index)
+    {
+        Widget[] children = categoryHead.getDynamicChildren();
+        if (children.length < 3)
+        {
+            return -1;
+        }
+
+        Widget[] killCountWidgets = Arrays.copyOfRange(children, 2, children.length);
+
+        if (killCountWidgets.length < index+1) {
+            return -1;
+        }
+        else {
+            return Integer.parseInt(killCountWidgets[index].getText().split(": ")[1].split(">")[1].split("<")[0].replace(",", ""));
+        }
+    }
+
+    private int getMainKillcountLog(Widget categoryHead) {
+        return getKillcountLog(categoryHead, 0);
+    }
+    private int getAlternateKillcountLog(Widget categoryHead) {
+        return getKillcountLog(categoryHead, 1);
+    }
+    private int getSecondAlternateKillcountLog(Widget categoryHead) {
+        return getKillcountLog(categoryHead, 2);
+    }
+
 
 
 

@@ -85,19 +85,19 @@ public class CollectionGoalsDataManager
             if (!collectionItemIDs.contains(logItem.getId())) {
                 collectionItemIDs.add(logItem.getId());
             } else {
-                log.info("Data already has " + logItem.getId());//TODO remove
+                log.info("Data already has " + logItem.getId());
             }
         }
 
         //nested loop to build
         for (int itemID : collectionItemIDs) {
+            tempLogItems.clear();
             for (CollectionGoalsLogItem logItem : userLogData) {
                 if (logItem.getId() == itemID) {
                     tempLogItems.add(logItem);
                 }
             }
             collectionItems.add(new CollectionGoalsItem(itemID, tempLogItems));
-            tempLogItems.clear();
         }
         plugin.setItems(collectionItems);
     }
