@@ -2,6 +2,8 @@ package com.collectiongoals;
 
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.inject.Provides;
 
 import javax.inject.Inject;
@@ -35,6 +37,7 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
 
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -42,6 +45,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 
 @Slf4j
 @PluginDescriptor(
@@ -53,6 +57,8 @@ public class CollectionGoalsPlugin extends Plugin {
 	private static final String PLUGIN_NAME = "Collection Goals";
 	private static final String ICON_IMAGE = "/panel_icon.png";
     private static final String KILLCOUNT = "killcount";
+    private static final String LOOT_TRACKER = "loottracker";
+    private static final String DROPS_PREFIX = "drops_NPC_";
     private static final String COLLECTION_LOG_TEXT = "New item added to your collection log: ";
     private static final Pattern NUMBER_PATTERN = Pattern.compile("([0-9]+)");
 
@@ -135,9 +141,6 @@ public class CollectionGoalsPlugin extends Plugin {
         */
 
 
-
-
-
 		this.dataManager = new CollectionGoalsDataManager(this, configManager, itemManager, gson);
 
 		clientThread.invokeLater(() ->
@@ -145,9 +148,6 @@ public class CollectionGoalsPlugin extends Plugin {
 			dataManager.loadData();
             SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
 		});
-
-
-
 
     }
 
@@ -159,22 +159,7 @@ public class CollectionGoalsPlugin extends Plugin {
     @Subscribe
     public void onGameStateChanged(GameStateChanged gameStateChanged) {
         if (gameStateChanged.getGameState() == GameState.LOGGED_IN) {
-
-            //log.info(String.valueOf(getKillcount("Zamorakian spear")) + " kills");
-
-
-
-
-            //log.info("Percent Complete = " + getProgressRelativeToDropRate("Zamorakian spear"));
-            //client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Example says " + config.greeting(), null);
-
             update();
-
-
-
-
-
-
         }
     }
 
@@ -183,18 +168,12 @@ public class CollectionGoalsPlugin extends Plugin {
         return configManager.getConfig(CollectionGoalsConfig.class);
     }
 
-
     @Subscribe
     public void onConfigChanged(ConfigChanged configChanged)
     {
-        if (configChanged.getGroup().equals(CONFIG_GROUP))
+        if (configChanged.getGroup().equals(CONFIG_GROUP) || configChanged.getGroup().equals(KILLCOUNT))
         {
             update();
-        }
-
-        if (configChanged.getGroup().equals(KILLCOUNT))
-        {
-            log.info("Killcount changed for " + configChanged.getKey() + ": " + configChanged.getNewValue());
         }
     }
 
@@ -363,21 +342,48 @@ public class CollectionGoalsPlugin extends Plugin {
         */
     }
 
-    public int getKillcount(String boss)
+    //from RL properties (unavailable on login screen)
+    public int getKillcount(String dropSource)
     {
-        Integer killCount = configManager.getRSProfileConfiguration(KILLCOUNT, boss.toLowerCase(), int.class);
-        //log.info("Killcount for " + boss + " = " + killCount);
+        Integer killCount = configManager.getRSProfileConfiguration(KILLCOUNT, dropSource.toLowerCase(), int.class);
+
         return killCount == null ? 0 : killCount;
     }
+
+    //from user log data (potentially stale)
+    public int getKillcountLogData(CollectionGoalsItem item) {
+        if (item == null || item.getSources().size() != 1) {
+            return -1;
+        }
+        Integer killCount = item.getUserLogData().get(0).getKillCount();
+        return killCount == null ? 0 : killCount;
+    }
+
+    public int getGreatestKillcount(String boss, CollectionGoalsItem item) {
+        return getKillcount(boss) >= getKillcountLogData(item) ? getKillcount(boss) : getKillcountLogData(item);
+    }
+
+
+
+
+
+
 
     public float getProgressRelativeToDropRate(String itemName) {
         float percentComplete = 0f;
 
-        CollectionGoalsItem item = CollectionGoalsItems.getItemByName(itemName);
-        for (CollectionGoalsSource source : item.getSources()) {
-            //log.info(String.valueOf(source.getRate()));
-            //todo: this math needs looking at as well
-            percentComplete += parseDropRate(source.getRate()) * (float) getKillcount(source.getName());
+        CollectionGoalsItem baseItem = CollectionGoalsItems.getBaseItemByName(itemName);
+        CollectionGoalsItem userItem = getUserItemByName(itemName);
+
+
+        if (baseItem.getSources().size() == 1) {
+            percentComplete = (float) (parseDropRate(baseItem.getSources().get(0).getRate()) * (float) getGreatestKillcount(baseItem.getSources().get(0).getName(), userItem));
+        }
+        else {
+            for (CollectionGoalsSource source : baseItem.getSources()) {
+                //todo: this math needs looking at as well for more than one source
+                percentComplete += parseDropRate(source.getRate()) * (float) getGreatestKillcount(source.getName(), userItem);
+            }
         }
 
         return percentComplete * 100f;
@@ -385,16 +391,19 @@ public class CollectionGoalsPlugin extends Plugin {
 
     public float getDropChance(String itemName) {
         float percentComplete = 0f;
-        CollectionGoalsItem item = CollectionGoalsItems.getItemByName(itemName);
-        if (item.getSources().size() > 1) {
+
+        CollectionGoalsItem baseItem = CollectionGoalsItems.getBaseItemByName(itemName);
+        CollectionGoalsItem userItem = getUserItemByName(itemName);
+
+        if (baseItem.getSources().size() > 1) {
             return 0; //TODO: figure out how this math works...
         }
         else {
-            int kc = getKillcount(item.getSources().get(0).getName());
+            int kc = getGreatestKillcount(baseItem.getSources().get(0).getName(), userItem);
             if (kc==0) {
                 return 0;
             }
-            percentComplete = (float) Math.pow((1 - parseDropRate(item.getSources().get(0).getRate())), kc);
+            percentComplete = (float) Math.pow((1 - parseDropRate(baseItem.getSources().get(0).getRate())), kc);
         }
         return (1-percentComplete) * 100f;
     }
@@ -603,51 +612,14 @@ public class CollectionGoalsPlugin extends Plugin {
             return;
         }
 
-        int mainKillcount = getKillcountLog(categoryHead, 0);
-        int alternateKillcount = getKillcountLog(categoryHead, 1);
+        int mainKillcount = getMainKillcountLog(categoryHead);
+        int alternateKillcount = getAlternateKillcountLog(categoryHead);
 
-        //List<CollectionGoalsLogItem> logItems = new ArrayList<>();
-
-
-
-        //List <CollectionGoalsItem> tempGoalsItem =  new ArrayList<>(getItems());
-
-        Widget[] widgetItems = itemsContainer.getDynamicChildren();
-        for (Widget widgetItem : widgetItems)
+        for (Widget widgetItem : itemsContainer.getDynamicChildren())
         {
-
             updateLogDataFromWidget(widgetItem, entryTitle, mainKillcount, alternateKillcount);
-
-
-/*
-            //todo: check here for error; don't think i can update what i'm iterating over
-            for (CollectionGoalsItem goalsItem : getItems()) {
-                if (goalsItem.getId() == id) {
-                    for (CollectionGoalsLogItem logItem : goalsItem.getUserLogData()) {
-                        if (logItem.getSource().equalsIgnoreCase(entryTitle)) {
-                            logItem = new CollectionGoalsLogItem(id, entryTitle, quantity, mainKillcount, alternateKillcount);//todo - this item
-                        }
-                    }
-                }
-            }
-
-*/
-
-
-
-
-
-
-
-
-
-
         }
 
-
-
-
-        //if id matches from logItems and plugin items, replace
     }
 
 
@@ -659,20 +631,10 @@ public class CollectionGoalsPlugin extends Plugin {
         String name = itemManager.getItemComposition(id).getName();
         int quantity = (widgetItem.getOpacity() == 0 ? widgetItem.getItemQuantity() : 0);
 
-        //todo: check here for error; don't think i can update what i'm iterating over
-        // somehow the id is getting written to the next...
-        log.info("checking for updates for " + name + "("+id+")");//todo
         for (int i=0; i<getItems().size(); i++) {
-            log.info("getitemsid="+String.valueOf(getItems().get(i).getId()));//todo
             if (getItems().get(i).getId() == id) {
-                log.info(name + " id match: " + id);
                 for (int j=0; j<getItems().get(i).getUserLogData().size(); j++) {
-
-
-
                     if (getItems().get(i).getUserLogData().get(j).getSource().equalsIgnoreCase(entryTitle)) {
-                        log.info(name + "source match: " + entryTitle);
-                        log.info(getItems().get(i).getName());//todo - i think this is the problem; we never chjeck name
                         getItems().get(i).getUserLogData().set(j, new CollectionGoalsLogItem(id, entryTitle, quantity, mainKillcount, alternateKillcount));
                         return;
                     }
@@ -712,9 +674,25 @@ public class CollectionGoalsPlugin extends Plugin {
     }
 
 
+    public CollectionGoalsItem getUserItemByName(String name) {
+        for (CollectionGoalsItem item : getItems()) {
+            if (item.getName().equals(name)) {
+                return item;
+            }
+        }
+        return null;
+    }
 
+public int getLootTrackerKills(String npc) {
+    String lootTrackerJson = configManager.getRSProfileConfiguration(LOOT_TRACKER, DROPS_PREFIX + npc, String.class);
 
+    if (lootTrackerJson == null || lootTrackerJson.equals("[]")) {
+        return -1;
+    }
 
+    JsonObject body = gson.fromJson(lootTrackerJson, JsonObject.class);
+    return body.get("kills").getAsInt();
+}
 
 
 

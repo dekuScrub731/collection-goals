@@ -36,5 +36,12 @@ public interface CollectionGoalsConfig extends Config
 	}
 
 
+	//completed
+
+	//colors for dryness
+
+
+
+
 
 }

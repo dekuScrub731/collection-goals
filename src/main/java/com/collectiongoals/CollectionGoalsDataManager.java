@@ -88,9 +88,6 @@ public class CollectionGoalsDataManager
 
     private void convertIds()
     {
-
-        //todo- problem?
-
         List<CollectionGoalsItem> collectionItems = new ArrayList<>();
         List<Integer> collectionItemIDs = new ArrayList<>();
 
@@ -99,31 +96,22 @@ public class CollectionGoalsDataManager
             if (!collectionItemIDs.contains(logItem.getId())) {
                 collectionItemIDs.add(logItem.getId());
             } else {
-                log.info("Data already has " + logItem.getId());
+                log.debug("Data already has " + logItem.getId());
             }
         }
 
         //nested loop to build
         for (int itemID : collectionItemIDs) {
-            log.info("loop check for item id" + String.valueOf(itemID));
-
-
-            log.info(gson.toJson(new CollectionGoalsItem(itemID, buildCollectionGoalsLog(itemID))));
             collectionItems.add(new CollectionGoalsItem(itemID, buildCollectionGoalsLog(itemID)));
         }
         plugin.setItems(collectionItems);
-
-        log.info(gson.toJson(plugin.getItems()));//todo - show how it was loaded
     }
 
     private List<CollectionGoalsLogItem> buildCollectionGoalsLog(int itemID) {
         List<CollectionGoalsLogItem> tempLogItems = new ArrayList<>();
 
         for (CollectionGoalsLogItem logItem : userLogData) {
-            log.info("log item id " + logItem.getId());
             if (logItem.getId() == itemID) {
-                log.info("match");
-                log.info(String.valueOf(logItem.getId()));
                 tempLogItems.add(logItem);
             }
         }

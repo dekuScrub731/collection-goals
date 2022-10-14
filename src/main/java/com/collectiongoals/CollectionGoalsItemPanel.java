@@ -102,8 +102,6 @@ public class CollectionGoalsItemPanel extends JPanel
             barColor = OVER_RATE;
         }
 
-        //TODO: if complete, set to COMPLETE
-
         //Only replace if the config dictates
         if (config.progressMethod().equals(DROP_CHANCE)) {
             percent = plugin.getDropChance(item.getName());
@@ -115,18 +113,44 @@ public class CollectionGoalsItemPanel extends JPanel
             }
         }
 
+        //TODO: for/if/then on multiple sources
+        // move up to use in progress percent?
+        String sourceName = item.getSources().get(0).getName();
+        int kc = plugin.getGreatestKillcount(sourceName, item);
+
+        String killInfo = sourceName + " (" + String.valueOf(kc) + " kills)";
+
+
+
+        if (item.isObtained()) {
+            percent = 100;
+            percentText = "Complete";
+            progressPercent = percent;
+            barColor = COMPLETE;
+            killInfo = sourceName;
+        }
+
+
+/*
         for (CollectionGoalsLogItem logItem: item.getUserLogData()) {
             if (logItem.isObtained()) {
                 percent = 100;
-                percentText = item.getName();
+                percentText = "Complete";
                 progressPercent = percent;
                 barColor = COMPLETE;
+                killInfo = sourceName;
+                break;
             }
         }
 
-        //TODO: for/if/then on multiple sources
-        String sourceName = item.getSources().get(0).getName();
-        String killInfo = sourceName + " (" + String.valueOf(plugin.getKillcount(sourceName)) + " kills)";
+ */
+
+        if (item.getSources().size()>1) {
+            killInfo = "Multiple Sources";
+        }
+
+
+
 
         killCount.setText(killInfo);
         rightPanel.add(killCount);

@@ -14,12 +14,7 @@ package com.collectiongoals;
         import net.runelite.http.api.item.ItemPrice;
 
 
-        import javax.swing.ImageIcon;
-        import javax.swing.JLabel;
-        import javax.swing.JOptionPane;
-        import javax.swing.JPanel;
-        import javax.swing.JScrollPane;
-        import javax.swing.SwingUtilities;
+        import javax.swing.*;
         import javax.swing.border.EmptyBorder;
         import java.awt.BorderLayout;
         import java.awt.CardLayout;
@@ -67,13 +62,15 @@ public class CollectionGoalsPluginPanel extends PluginPanel
     private final JLabel cancelItem = new JLabel(CANCEL_ICON);
     private final JPanel centerPanel = new JPanel(centerCard);
     private final JPanel progressPanel = new JPanel();
-    private final JLabel value = new JLabel();
+    private final JPanel completePanel = new JPanel();
+    //private final JLabel value = new JLabel();
     private final JPanel searchPanel = new JPanel(new BorderLayout());
     private final JPanel searchCenterPanel = new JPanel(searchCard);
     private final JPanel searchResultsPanel = new JPanel();
     private final IconTextField searchBar = new IconTextField();
     private final PluginErrorPanel searchErrorPanel = new PluginErrorPanel();
     private final GridBagConstraints constraints = new GridBagConstraints();
+    private final GridBagConstraints constraints2 = new GridBagConstraints();
 
     private final List<CollectionGoalsItem> searchItems = new ArrayList<>();
 
@@ -112,7 +109,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 3));
 
         /* Add Item Button */
-        addItem.setToolTipText("Add an item from the Grand Exchange");
+        addItem.setToolTipText("Add an item from the Collection Log");
         addItem.addMouseListener(new MouseAdapter()
         {
             @Override
@@ -163,20 +160,34 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         titlePanel.add(title, BorderLayout.WEST);
         titlePanel.add(actions, BorderLayout.EAST);
 
-        /* Progress Items Panel */
+        // Goals Panels (In Progress, and Complete)
         progressPanel.setLayout(new GridBagLayout());
+        completePanel.setLayout(new GridBagLayout());
 
-        JPanel pWrapper = new JPanel(new BorderLayout());
-        pWrapper.add(progressPanel, BorderLayout.NORTH);
+        // Panel Wrapper Constraints
+        GridBagConstraints pWrapperConstraints = new GridBagConstraints();
+        pWrapperConstraints.fill = GridBagConstraints.HORIZONTAL;
+        pWrapperConstraints.anchor = GridBagConstraints.NORTH;
+        pWrapperConstraints.gridwidth = 1;
+        pWrapperConstraints.weightx = 1;
+        pWrapperConstraints.gridx = 0;
+        pWrapperConstraints.gridy = 0;
 
-        JScrollPane progressWrapper = new JScrollPane(pWrapper);
+        // Panel Wrapper
+        JPanel pWrapper = new JPanel(new GridBagLayout());
+        pWrapper.add(progressPanel, pWrapperConstraints);
+        pWrapperConstraints.gridy++;
+        pWrapper.add(completePanel, pWrapperConstraints);
+
+        // Progress Wrapper Container (needed to align to top for some reason)
+        JPanel pWrapperContainer = new JPanel(new BorderLayout());
+        pWrapperContainer.add(pWrapper, BorderLayout.NORTH);
+
+        JScrollPane progressWrapper = new JScrollPane(pWrapperContainer);
         progressWrapper.setBackground(ColorScheme.DARK_GRAY_COLOR);
         progressWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
         progressWrapper.getVerticalScrollBar().setPreferredSize(new Dimension(12, 0));
         progressWrapper.getVerticalScrollBar().setBorder(new EmptyBorder(5, 5, 0, 0));
-
-        value.setForeground(new Color(255, 202, 36));
-        value.setBorder(new EmptyBorder(0, 0, 5, 0));
 
         /* Search Results Panel */
         searchResultsPanel.setLayout(new GridBagLayout());
@@ -197,7 +208,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         constraints.gridy = 0;
 
         /* Search Error Panel */
-        searchErrorPanel.setContent("Grand Exchange Search",
+        searchErrorPanel.setContent("Collection Log Search",
                 "Search for an item to select");
 
         JPanel errorWrapper = new JPanel(new BorderLayout());
@@ -213,7 +224,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         searchBar.setPreferredSize(new Dimension(PluginPanel.PANEL_WIDTH - 15, 30));
         searchBar.setBackground(ColorScheme.DARKER_GRAY_COLOR);
         searchBar.setHoverBackgroundColor(ColorScheme.DARK_GRAY_HOVER_COLOR);
-        //searchBar.addClearListener(this::searchForItems);
+        searchBar.addClearListener(this::searchForItems);
         searchBar.addKeyListener(new KeyListener()
         {
             @Override
@@ -277,7 +288,6 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         searchCard.show(searchCenterPanel, RESULTS_PANEL);
 
         int count = 0;
-        //boolean useActivelyTradedPrice = runeLiteConfig.useWikiItemPrices();
 
         // Add each result to items list
         for (CollectionGoalsItem item : results)
@@ -325,27 +335,27 @@ public class CollectionGoalsPluginPanel extends PluginPanel
     public void updateProgressPanels()
     {
         progressPanel.removeAll();
-
-        //updateValue();
-        progressPanel.add(value);
+        completePanel.removeAll();
 
         constraints.gridy++;
 
-        int index = 0;
         for (CollectionGoalsItem item : plugin.getItems())
         {
             CollectionGoalsItemPanel panel = new CollectionGoalsItemPanel(plugin, config, item);
 
-            if (index++ > 0)
-            {
-               JPanel marginWrapper = new JPanel(new BorderLayout());
+
+            if (item.isObtained()) {
+                JPanel marginWrapper = new JPanel(new BorderLayout());
+                marginWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
+                marginWrapper.add(panel, BorderLayout.NORTH);
+                completePanel.add(marginWrapper, constraints);
+
+            }
+            else {
+                JPanel marginWrapper = new JPanel(new BorderLayout());
                 marginWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
                 marginWrapper.add(panel, BorderLayout.NORTH);
                 progressPanel.add(marginWrapper, constraints);
-            }
-            else
-            {
-                progressPanel.add(panel, constraints);
             }
 
             constraints.gridy++;
@@ -354,20 +364,9 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         validate();
     }
 
-    /*
-    private void updateValue()
-    {
-        long progressValue = plugin.getValue();
-        if (progressValue == 0)
-        {
-            value.setText("Visit a bank to calculate value");
-        }
-        else
-        {
-            value.setText("Value: " + QuantityFormatter.formatNumber(plugin.getValue()) + " gp");
-        }
-    }
-     */
+
+
+
 
 
     public void containsItemWarning()
@@ -390,12 +389,6 @@ public class CollectionGoalsPluginPanel extends PluginPanel
         centerCard.show(centerPanel, SEARCH_PANEL);
     }
 
-
-
-
-
-
-
     /**
      * Search for collection log items based on item name
      *
@@ -404,33 +397,20 @@ public class CollectionGoalsPluginPanel extends PluginPanel
      */
     public List<CollectionGoalsItem> search(String itemName)
     {
-        itemName = itemName.toLowerCase();
+
+        itemName = itemName.replaceAll("[^a-zA-Z0-9\\s]", "").toLowerCase();
 
         List<CollectionGoalsItem> result = new ArrayList<>();
 
         for (CollectionGoalsItem item : ALL_ITEMS)
         {
             final String name = item.getName();
-            if (name.toLowerCase().contains(itemName))
+            if (name.replaceAll("[^a-zA-Z0-9\\s]", "").toLowerCase().contains(itemName))
             {
                 result.add(item);
             }
         }
         return result;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }

@@ -61,7 +61,7 @@ public class CollectionGoalsItems {
 
 
 
-    public static CollectionGoalsItem getItemByName(String name) {
+    public static CollectionGoalsItem getBaseItemByName(String name) {
         for (CollectionGoalsItem item : ALL_ITEMS) {
             if (item.getName().equals(name)) {
                 return item;

@@ -81,6 +81,14 @@ private List<CollectionGoalsLogItem> userLogData;
 
 
 
+    public boolean isObtained() {
+        for (CollectionGoalsLogItem logItem: this.userLogData) {
+            if (logItem.isObtained()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 
 
