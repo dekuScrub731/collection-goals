@@ -7,7 +7,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @Getter
 @Setter
-public class CollectionGoalsKillcount {
-    String name;
-    int killcount;
+public class CollectionGoalsKillcount
+{
+	String name;
+	int killcount;
 }

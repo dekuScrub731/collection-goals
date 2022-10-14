@@ -22,13 +22,11 @@ public interface CollectionGoalsConfig extends Config
 	}
 
 
-
-
 	@ConfigItem(
-			keyName = "progressMethod",
-			name = "Progress Method",
-			description = "Determines how progress is calculated",
-			position = 1
+		keyName = "progressMethod",
+		name = "Progress Method",
+		description = "Determines how progress is calculated",
+		position = 1
 	)
 	default progressMethod progressMethod()
 	{
@@ -39,9 +37,6 @@ public interface CollectionGoalsConfig extends Config
 	//completed
 
 	//colors for dryness
-
-
-
 
 
 }

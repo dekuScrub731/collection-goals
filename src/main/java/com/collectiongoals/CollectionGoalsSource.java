@@ -7,7 +7,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @Getter
 @Setter
-public class CollectionGoalsSource {
-    String name;
-    String rate;
+public class CollectionGoalsSource
+{
+	String name;
+	String rate;
 }
