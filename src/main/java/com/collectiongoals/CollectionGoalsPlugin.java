@@ -1,6 +1,8 @@
 package com.collectiongoals;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -13,10 +15,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.WorldType;
+import net.runelite.api.*;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ScriptPostFired;
@@ -36,15 +35,16 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.Text;
 
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 
 
 @Slf4j
@@ -59,11 +59,34 @@ public class CollectionGoalsPlugin extends Plugin {
     private static final String KILLCOUNT = "killcount";
     private static final String LOOT_TRACKER = "loottracker";
     private static final String DROPS_PREFIX = "drops_NPC_";
-    private static final String COLLECTION_LOG_TEXT = "New item added to your collection log: ";
-    private static final Pattern NUMBER_PATTERN = Pattern.compile("([0-9]+)");
+
+
 
     private static final Pattern ADVENTURE_LOG_TITLE_PATTERN = Pattern.compile("The Exploits of (.+)");
     private static final int ADVENTURE_LOG_COLLECTION_LOG_SELECTED_VARBIT_ID = 12061;
+    private static final String COLLECTION_LOG_TEXT = "New item added to your collection log: ";
+
+    private static final Map<Integer, String> CHEST_LOOT_EVENTS = ImmutableMap.of(12127, "The Gauntlet");
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("([0-9]+)");
+    private static final Pattern VALUABLE_DROP_PATTERN = Pattern.compile(".*Valuable drop: ([^<>]+?\\(((?:\\d+,?)+) coins\\))(?:</col>)?");
+    private static final Pattern UNTRADEABLE_DROP_PATTERN = Pattern.compile(".*Untradeable drop: ([^<>]+)(?:</col>)?");
+    private static final String SD_CHEST_LOOT = "Chest Loot";
+    private static final String SD_VALUABLE_DROPS = "Valuable Drops";
+    private static final String SD_UNTRADEABLE_DROPS = "Untradeable Drops";
+    private static final String SD_COLLECTION_LOG = "Collection Log";
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     private static final int COLLECTION_LOG_CONTAINER = 1;
@@ -160,7 +183,24 @@ public class CollectionGoalsPlugin extends Plugin {
     public void onGameStateChanged(GameStateChanged gameStateChanged) {
         if (gameStateChanged.getGameState() == GameState.LOGGED_IN) {
             update();
+
+            String testMessage = "New item added to your collection log: <col=ef1020>Bandos tassets</col>";
+
+            client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", testMessage, null);
+
         }
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     @Provides
@@ -197,150 +237,60 @@ public class CollectionGoalsPlugin extends Plugin {
         }
 
         String chatMessage = event.getMessage();
+        Matcher m;
 
-        /*
 
+//Treasure Trails
         if (chatMessage.contains("You have completed") && chatMessage.contains("Treasure"))
         {
-            Matcher m = NUMBER_PATTERN.matcher(Text.removeTags(chatMessage));
+            m = NUMBER_PATTERN.matcher(Text.removeTags(chatMessage));
             if (m.find())
             {
-                clueNumber = Integer.valueOf(m.group());
-                clueType = chatMessage.substring(chatMessage.lastIndexOf(m.group()) + m.group().length() + 1, chatMessage.indexOf("Treasure") - 1);
+                int clueNumber = Integer.valueOf(m.group());
+                String clueType = chatMessage.substring(chatMessage.lastIndexOf(m.group()) + m.group().length() + 1, chatMessage.indexOf("Treasure") - 1);
                 return;
             }
         }
 
-        if (chatMessage.startsWith("Your Barrows chest count is"))
-        {
-            Matcher m = NUMBER_PATTERN.matcher(Text.removeTags(chatMessage));
-            if (m.find())
-            {
-                killType = KillType.BARROWS;
-                killCountNumber = Integer.valueOf(m.group());
-                return;
-            }
-        }
+//Valuable Drop (future proof for number of items, such as zenytes)
 
-        if (chatMessage.startsWith("Your completed Chambers of Xeric count is:"))
-        {
-            Matcher m = NUMBER_PATTERN.matcher(Text.removeTags(chatMessage));
-            if (m.find())
-            {
-                killType = KillType.COX;
-                killCountNumber = Integer.valueOf(m.group());
-                return;
-            }
-        }
-
-        if (chatMessage.startsWith("Your completed Chambers of Xeric Challenge Mode count is:"))
-        {
-            Matcher m = NUMBER_PATTERN.matcher(Text.removeTags(chatMessage));
-            if (m.find())
-            {
-                killType = KillType.COX_CM;
-                killCountNumber = Integer.valueOf(m.group());
-                return;
-            }
-        }
-
-        if (chatMessage.startsWith("Your completed Theatre of Blood"))
-        {
-            Matcher m = NUMBER_PATTERN.matcher(Text.removeTags(chatMessage));
-            if (m.find())
-            {
-                killType = chatMessage.contains("Hard Mode") ? KillType.TOB_HM : (chatMessage.contains("Story Mode") ? KillType.TOB_SM : KillType.TOB);
-                killCountNumber = Integer.valueOf(m.group());
-                return;
-            }
-        }
-
-        if (chatMessage.startsWith("Your completed Tombs of Amascut"))
-        {
-            Matcher m = NUMBER_PATTERN.matcher(Text.removeTags(chatMessage));
-            if (m.find())
-            {
-                killType = chatMessage.contains("Expert Mode") ? KillType.TOA_EXPERT_MODE :
-                        chatMessage.contains("Entry Mode") ? KillType.TOA_ENTRY_MODE :
-                                KillType.TOA;
-                killCountNumber = Integer.valueOf(m.group());
-                return;
-            }
-        }
-
-        if (config.screenshotPet() && PET_MESSAGES.stream().anyMatch(chatMessage::contains))
-        {
-            String fileName = "Pet";
-            takeScreenshot(fileName, SD_PETS);
-        }
-
-
-
-        if (chatMessage.equals(CHEST_LOOTED_MESSAGE) && config.screenshotRewards())
-        {
-            final int regionID = client.getLocalPlayer().getWorldLocation().getRegionID();
-            String eventName = CHEST_LOOT_EVENTS.get(regionID);
-            if (eventName != null)
-            {
-                takeScreenshot(eventName, SD_CHEST_LOOT);
-            }
-        }
-
-        if (config.screenshotValuableDrop())
-        {
-            Matcher m = VALUABLE_DROP_PATTERN.matcher(chatMessage);
+            m = VALUABLE_DROP_PATTERN.matcher(chatMessage);
             if (m.matches())
             {
-                int valuableDropValue = Integer.parseInt(m.group(2).replaceAll(",", ""));
-                if (valuableDropValue >= config.valuableDropThreshold())
-                {
                     String valuableDropName = m.group(1);
-                    String fileName = "Valuable drop " + valuableDropName;
-                    takeScreenshot(fileName, SD_VALUABLE_DROPS);
-                }
+                updateLogDataFromChatMessage(valuableDropName);
             }
-        }
 
-        if (config.screenshotUntradeableDrop() && !isInsideGauntlet())
-        {
-            Matcher m = UNTRADEABLE_DROP_PATTERN.matcher(chatMessage);
+
+        //Untradable Drops
+
+            m = UNTRADEABLE_DROP_PATTERN.matcher(chatMessage);
             if (m.matches())
             {
                 String untradeableDropName = m.group(1);
-                String fileName = "Untradeable drop " + untradeableDropName;
-                takeScreenshot(fileName, SD_UNTRADEABLE_DROPS);
+                updateLogDataFromChatMessage(untradeableDropName);
             }
-        }
 
-        if (config.screenshotDuels())
-        {
-            Matcher m = DUEL_END_PATTERN.matcher(chatMessage);
-            if (m.find())
-            {
-                String result = m.group(1);
-                String count = m.group(2).replace(",", "");
-                String fileName = "Duel " + result + " (" + count + ")";
-                takeScreenshot(fileName, SD_DUELS);
-            }
-        }
 
-        if (config.screenshotCollectionLogEntries() && chatMessage.startsWith(COLLECTION_LOG_TEXT) && client.getVarbitValue(Varbits.COLLECTION_LOG_NOTIFICATION) == 1)
+
+        if (chatMessage.startsWith(COLLECTION_LOG_TEXT) && client.getVarbitValue(Varbits.COLLECTION_LOG_NOTIFICATION) == 1)
         {
             String entry = Text.removeTags(chatMessage).substring(COLLECTION_LOG_TEXT.length());
-            String fileName = "Collection log (" + entry + ")";
-            takeScreenshot(fileName, SD_COLLECTION_LOG);
+            updateLogDataFromChatMessage(entry);
         }
 
-        if (chatMessage.contains("combat task") && config.screenshotCombatAchievements() && client.getVarbitValue(Varbits.COMBAT_ACHIEVEMENTS_POPUP) == 1)
-        {
-            String fileName = parseCombatAchievementWidget(chatMessage);
-            if (!fileName.isEmpty())
-            {
-                takeScreenshot(fileName, SD_COMBAT_ACHIEVEMENTS);
-            }
-        }
-        */
     }
+
+
+
+
+
+
+
+
+
+
+
 
     //from RL properties (unavailable on login screen)
     public int getKillcount(String dropSource)
@@ -622,6 +572,43 @@ public class CollectionGoalsPlugin extends Plugin {
 
     }
 
+    private void updateLogDataFromChatMessage(String itemAcquired) {
+
+        for (int i=0; i<getItems().size(); i++) {
+            if (getItems().get(i).getName().equalsIgnoreCase(itemAcquired)) {
+                for (int j=0; j<getItems().get(i).getUserLogData().size(); j++) {
+
+                    CollectionGoalsItem item = getItems().get(i);
+                    CollectionGoalsLogItem userLogData = item.getUserLogData().get(j);
+
+                    if (userLogData.getId() == item.getId()) {
+
+                        int id = userLogData.getId();
+                        int quantity = userLogData.getNumberObtained();
+                        String source = userLogData.getSource();
+                        int mainKillcount = userLogData.getKillCount();
+                        int alternateKillcount = userLogData.getAlternateKillCount();
+
+                        if (quantity < 1) {
+                            getItems().get(i).getUserLogData().set(j, new CollectionGoalsLogItem(id, source, 1, mainKillcount, alternateKillcount));
+                        }
+                        else {
+                            getItems().get(i).getUserLogData().set(j, new CollectionGoalsLogItem(id, source, quantity+1, mainKillcount, alternateKillcount));
+                        }
+                        update();
+                        return;
+                    }
+                }
+            }
+        }
+
+
+
+
+
+
+
+    }
 
 
 
