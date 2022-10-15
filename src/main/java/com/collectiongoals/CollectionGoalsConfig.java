@@ -1,12 +1,15 @@
 package com.collectiongoals;
 
+import static com.collectiongoals.CollectionGoalsPlugin.CONFIG_GROUP;
+
+import java.awt.Color;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
-
-import static com.collectiongoals.CollectionGoalsPlugin.CONFIG_GROUP;
 
 @ConfigGroup(CONFIG_GROUP)
 public interface CollectionGoalsConfig extends Config
@@ -21,7 +24,6 @@ public interface CollectionGoalsConfig extends Config
 		private final String value;
 	}
 
-
 	@ConfigItem(
 		keyName = "progressMethod",
 		name = "Progress Method",
@@ -33,10 +35,48 @@ public interface CollectionGoalsConfig extends Config
 		return progressMethod.DROP_RATE;
 	}
 
+	@ConfigItem(
+		keyName = "underRateColor",
+		name = "Under Rate Color",
+		description = "The color of panel items that are under drop rate",
+		position = 2
+	)
+	default Color underRateColor()
+	{
+		return new Color(80, 80, 80);
+	}
 
-	//completed
+	@ConfigItem(
+		keyName = "overRateColor",
+		name = "Over Rate Color",
+		description = "The color of panel items that are over drop rate",
+		position = 3
+	)
+	default Color overRateColor()
+	{
+		return new Color(110, 110, 0);
+	}
 
-	//colors for dryness
+	@ConfigItem(
+		keyName = "twiceRateColor",
+		name = "Twice Rate Color",
+		description = "The color of panel items that are over twice the drop rate",
+		position = 4
+	)
+	default Color twiceRateColor()
+	{
+		return new Color(100, 0, 0);
+	}
 
+	@ConfigItem(
+		keyName = "completeColor",
+		name = "Complete Color",
+		description = "The color of panel items that are complete",
+		position = 5
+	)
+	default Color completeColor()
+	{
+		return new Color(10, 90, 40);
+	}
 
 }

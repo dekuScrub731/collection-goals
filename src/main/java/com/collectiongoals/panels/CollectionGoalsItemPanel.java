@@ -1,14 +1,11 @@
 
-package com.collectiongoals;
+package com.collectiongoals.panels;
 
-import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.util.ImageUtil;
+import com.collectiongoals.CollectionGoalsConfig;
+import static com.collectiongoals.CollectionGoalsConfig.progressMethod.DROP_CHANCE;
+import com.collectiongoals.CollectionGoalsPlugin;
+import com.collectiongoals.utils.CollectionGoalsItem;
 
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -17,17 +14,17 @@ import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
 
-import static com.collectiongoals.CollectionGoalsConfig.progressMethod.*;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.util.ImageUtil;
 
 public class CollectionGoalsItemPanel extends JPanel
 {
-
-	//TODO: Move to config.
-	private Color UNDER_RATE = new Color(80, 80, 80);
-	private Color OVER_RATE = new Color(110, 110, 0);
-	private Color TWICE_RATE = new Color(100, 0, 0);
-	private Color COMPLETE = new Color(10, 90, 40);
 
 	private static final String DELETE_TITLE = "Warning";
 	private static final String DELETE_MESSAGE = "Are you sure you want to delete this progress item?";
@@ -37,7 +34,7 @@ public class CollectionGoalsItemPanel extends JPanel
 
 	private float percent;
 	private float progressPercent;
-	private Color barColor = UNDER_RATE;
+	private Color barColor;
 	private String percentText;
 
 	static
@@ -49,6 +46,8 @@ public class CollectionGoalsItemPanel extends JPanel
 
 	CollectionGoalsItemPanel(CollectionGoalsPlugin plugin, CollectionGoalsConfig config, CollectionGoalsItem item)
 	{
+		barColor = config.underRateColor();
+
 		BorderLayout layout = new BorderLayout();
 		layout.setHgap(5);
 		setLayout(layout);
@@ -84,7 +83,7 @@ public class CollectionGoalsItemPanel extends JPanel
 		// Source/KC
 		JLabel killCount = new JLabel();
 
-		//Determine percent progress relative to drop rate first
+		// Determine percent progress relative to drop rate first
 		// This allows for color coding to come into play
 		percent = plugin.getProgressRelativeToDropRate(item.getName());
 		percentText = String.format("%.2f", percent) + "% of Drop Rate";
@@ -97,18 +96,18 @@ public class CollectionGoalsItemPanel extends JPanel
 		//Logic for bar color (based on progress toward drop rate)
 		if (percent >= 200)
 		{
-			barColor = TWICE_RATE;
+			barColor = config.twiceRateColor();
 		}
 		else if (percent >= 100)
 		{
-			barColor = OVER_RATE;
+			barColor = config.overRateColor();
 		}
 
 		//Only replace if the config dictates
 		if (config.progressMethod().equals(DROP_CHANCE))
 		{
 			percent = plugin.getDropChance(item.getName());
-			percentText = String.format("%.2f", percent) + "% Chance of Drop";
+			percentText = String.format("%.1f", percent) + "% Drop Chance";
 			progressPercent = percent;
 
 			if (progressPercent >= 100)
@@ -117,43 +116,24 @@ public class CollectionGoalsItemPanel extends JPanel
 			}
 		}
 
-		//TODO: for/if/then on multiple sources
-		// move up to use in progress percent?
 		String sourceName = item.getSources().get(0).getName();
 		int kc = plugin.getGreatestKillcount(sourceName, item);
 
 		String killInfo = sourceName + " (" + String.valueOf(kc) + " kills)";
-
 
 		if (item.isObtained())
 		{
 			percent = 100;
 			percentText = "Complete";
 			progressPercent = percent;
-			barColor = COMPLETE;
+			barColor = config.completeColor();
 			killInfo = sourceName;
 		}
-
-
-/*
-        for (CollectionGoalsLogItem logItem: item.getUserLogData()) {
-            if (logItem.isObtained()) {
-                percent = 100;
-                percentText = "Complete";
-                progressPercent = percent;
-                barColor = COMPLETE;
-                killInfo = sourceName;
-                break;
-            }
-        }
-
- */
 
 		if (item.getSources().size() > 1)
 		{
 			killInfo = "Multiple Sources";
 		}
-
 
 		killCount.setText(killInfo);
 		rightPanel.add(killCount);
@@ -163,7 +143,6 @@ public class CollectionGoalsItemPanel extends JPanel
 		progressLabel.setText(percentText);
 		progressLabel.setForeground(Color.WHITE);
 		rightPanel.add(progressLabel);
-
 
 		// Remove Button
 		JPanel deletePanel = new JPanel(new BorderLayout());
@@ -211,9 +190,7 @@ public class CollectionGoalsItemPanel extends JPanel
 	@Override
 	protected void paintComponent(Graphics g)
 	{
-
 		g.setColor(barColor);
-
 
 		float barPercent = this.getWidth() * progressPercent / 100;
 		int barWidth = (int) barPercent;

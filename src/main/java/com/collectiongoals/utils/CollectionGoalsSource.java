@@ -1,4 +1,4 @@
-package com.collectiongoals;
+package com.collectiongoals.utils;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,6 +9,6 @@ import lombok.Setter;
 @Setter
 public class CollectionGoalsSource
 {
-	String name;
-	String rate;
+	private String name;
+	private String rate;
 }

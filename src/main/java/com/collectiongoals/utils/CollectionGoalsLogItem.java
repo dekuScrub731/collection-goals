@@ -1,7 +1,5 @@
-package com.collectiongoals;
+package com.collectiongoals.utils;
 
-
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,12 +7,12 @@ import lombok.Setter;
 @Setter
 public class CollectionGoalsLogItem
 {
-	private final int id;
-	private final String source;
-	private final boolean obtained;
-	private final int numberObtained;
-	private final int killCount;
-	private final int alternateKillCount;//challenge mode, etc.
+	private int id;
+	private String source;
+	private boolean obtained;
+	private int numberObtained;
+	private int killCount;
+	private int alternateKillCount;//challenge mode, etc.
 
 	public CollectionGoalsLogItem(int id, String source)
 	{
@@ -45,6 +43,4 @@ public class CollectionGoalsLogItem
 		this.killCount = killCount;
 		this.alternateKillCount = alternateKillCount;
 	}
-
-
 }

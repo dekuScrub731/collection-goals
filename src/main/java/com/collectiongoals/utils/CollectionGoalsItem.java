@@ -1,20 +1,18 @@
-package com.collectiongoals;
+package com.collectiongoals.utils;
 
 
-import lombok.Getter;
-import lombok.Setter;
+import static com.collectiongoals.utils.CollectionGoalsItems.ALL_ITEMS;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.collectiongoals.CollectionGoalsItems.ALL_ITEMS;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
 public class CollectionGoalsItem
 {
-
-	private String group;//future proof for grouping
 	private String name;
 	private int id;
 	private List<CollectionGoalsSource> sources;

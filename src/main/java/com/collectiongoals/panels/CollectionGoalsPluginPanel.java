@@ -1,21 +1,11 @@
-package com.collectiongoals;
+package com.collectiongoals.panels;
 
+import com.collectiongoals.CollectionGoalsConfig;
+import com.collectiongoals.CollectionGoalsPlugin;
+import com.collectiongoals.utils.CollectionGoalsItem;
+import static com.collectiongoals.utils.CollectionGoalsItems.ALL_ITEMS;
 import com.google.inject.Inject;
-import net.runelite.client.callback.ClientThread;
-import net.runelite.client.config.RuneLiteConfig;
-import net.runelite.client.game.ItemManager;
-import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.PluginPanel;
-import net.runelite.client.ui.components.IconTextField;
-import net.runelite.client.ui.components.PluginErrorPanel;
-import net.runelite.client.util.AsyncBufferedImage;
-import net.runelite.client.util.ImageUtil;
-import net.runelite.client.util.QuantityFormatter;
-import net.runelite.http.api.item.ItemPrice;
 
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -30,8 +20,23 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
 
-import static com.collectiongoals.CollectionGoalsItems.ALL_ITEMS;
+import net.runelite.client.callback.ClientThread;
+import net.runelite.client.config.RuneLiteConfig;
+import net.runelite.client.game.ItemManager;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.ui.components.IconTextField;
+import net.runelite.client.ui.components.PluginErrorPanel;
+import net.runelite.client.util.AsyncBufferedImage;
+import net.runelite.client.util.ImageUtil;
 
 
 public class CollectionGoalsPluginPanel extends PluginPanel
@@ -63,7 +68,6 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 	private final JPanel centerPanel = new JPanel(centerCard);
 	private final JPanel progressPanel = new JPanel();
 	private final JPanel completePanel = new JPanel();
-	//private final JLabel value = new JLabel();
 	private final JPanel searchPanel = new JPanel(new BorderLayout());
 	private final JPanel searchCenterPanel = new JPanel(searchCard);
 	private final JPanel searchResultsPanel = new JPanel();
@@ -327,7 +331,6 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 
 				constraints.gridy++;
 			}
-
 			validate();
 		});
 	}

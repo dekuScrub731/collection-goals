@@ -1,11 +1,8 @@
-package com.collectiongoals;
+package com.collectiongoals.panels;
 
-import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.util.QuantityFormatter;
+import com.collectiongoals.CollectionGoalsPlugin;
+import com.collectiongoals.utils.CollectionGoalsItem;
 
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -15,6 +12,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
+
+import net.runelite.client.ui.ColorScheme;
 
 public class CollectionGoalsResultPanel extends JPanel
 {

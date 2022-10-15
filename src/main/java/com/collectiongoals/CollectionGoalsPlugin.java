@@ -1,21 +1,38 @@
 package com.collectiongoals;
 
+import com.collectiongoals.panels.CollectionGoalsPluginPanel;
+import com.collectiongoals.utils.CollectionGoalsDataManager;
+import com.collectiongoals.utils.CollectionGoalsItem;
+import com.collectiongoals.utils.CollectionGoalsItems;
+import com.collectiongoals.utils.CollectionGoalsLogItem;
+import com.collectiongoals.utils.CollectionGoalsSource;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.inject.Provides;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.inject.Inject;
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.*;
+
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.Client;
+import net.runelite.api.GameState;
+import net.runelite.api.Varbits;
+import net.runelite.api.WorldType;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ScriptPostFired;
@@ -29,6 +46,8 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.hiscore.HiscoreClient;
+import net.runelite.client.hiscore.HiscoreResult;
+import net.runelite.client.hiscore.HiscoreSkill;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -36,15 +55,6 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
-
-
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.util.*;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 
 @Slf4j
 @PluginDescriptor(
@@ -60,7 +70,6 @@ public class CollectionGoalsPlugin extends Plugin
 	private static final String LOOT_TRACKER = "loottracker";
 	private static final String DROPS_PREFIX = "drops_NPC_";
 
-
 	private static final Pattern ADVENTURE_LOG_TITLE_PATTERN = Pattern.compile("The Exploits of (.+)");
 	private static final int ADVENTURE_LOG_COLLECTION_LOG_SELECTED_VARBIT_ID = 12061;
 	private static final String COLLECTION_LOG_TEXT = "New item added to your collection log: ";
@@ -69,19 +78,18 @@ public class CollectionGoalsPlugin extends Plugin
 	private static final Pattern NUMBER_PATTERN = Pattern.compile("([0-9]+)");
 	private static final Pattern VALUABLE_DROP_PATTERN = Pattern.compile(".*Valuable drop: ([^<>]+?\\(((?:\\d+,?)+) coins\\))(?:</col>)?");
 	private static final Pattern UNTRADEABLE_DROP_PATTERN = Pattern.compile(".*Untradeable drop: ([^<>]+)(?:</col>)?");
-	private static final String SD_CHEST_LOOT = "Chest Loot";
-	private static final String SD_VALUABLE_DROPS = "Valuable Drops";
-	private static final String SD_UNTRADEABLE_DROPS = "Untradeable Drops";
-	private static final String SD_COLLECTION_LOG = "Collection Log";
 
-
-	private static final int COLLECTION_LOG_CONTAINER = 1;
 	private static final int COLLECTION_LOG_DRAW_LIST_SCRIPT_ID = 2730;
-	private static final int COLLECTION_LOG_DEFAULT_HIGHLIGHT = 901389;
 	private static final int COLLECTION_LOG_ACTIVE_TAB_SPRITE_ID = 2283;
 
-
 	private boolean isPohOwner = false;
+
+	@Getter
+	@Setter
+	private boolean loggedIn;
+
+	@Getter
+	@Setter
 	private int shamanCount = 0;
 
 	@Getter
@@ -118,7 +126,6 @@ public class CollectionGoalsPlugin extends Plugin
 	private CollectionGoalsPluginPanel panel;
 	private NavigationButton navButton;
 
-
 	@Override
 	protected void startUp() throws Exception
 	{
@@ -135,22 +142,6 @@ public class CollectionGoalsPlugin extends Plugin
 
 		clientToolbar.addNavigation(navButton);
 
-
-
-/*
-        // Initialize by looking up user; we can iterate on chat message
-        //TODO: store to variables
-        final HiscoreResult result = hiscoreClient.lookup(client.getLocalPlayer().getName());
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_BEGINNER);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_EASY);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_MEDIUM);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_HARD);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_ELITE);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_MASTER);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_ALL);
-        */
-
-
 		this.dataManager = new CollectionGoalsDataManager(this, configManager, itemManager, gson);
 
 		clientThread.invokeLater(() ->
@@ -158,7 +149,6 @@ public class CollectionGoalsPlugin extends Plugin
 			dataManager.loadData();
 			SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
 		});
-
 	}
 
 	@Override
@@ -170,23 +160,12 @@ public class CollectionGoalsPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
+		setLoggedIn(gameStateChanged.getGameState() == GameState.LOGGED_IN);
+
 		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
 		{
 			update();
-
-			String testMessage = "New item added to your collection log: <col=ef1020>Bandos tassets</col>";
-
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", testMessage, null);
-
 		}
-
-
-	}
-
-	@Provides
-	CollectionGoalsConfig provideConfig(ConfigManager configManager)
-	{
-		return configManager.getConfig(CollectionGoalsConfig.class);
 	}
 
 	@Subscribe
@@ -196,15 +175,6 @@ public class CollectionGoalsPlugin extends Plugin
 		{
 			update();
 		}
-	}
-
-
-	public void update()
-	{
-		clientThread.invokeLater(() -> {
-			SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
-		});
-		dataManager.saveData();
 	}
 
 	@Subscribe
@@ -221,8 +191,7 @@ public class CollectionGoalsPlugin extends Plugin
 		String chatMessage = event.getMessage();
 		Matcher m;
 
-
-//Treasure Trails
+		//Treasure Trails
 		if (chatMessage.contains("You have completed") && chatMessage.contains("Treasure"))
 		{
 			m = NUMBER_PATTERN.matcher(Text.removeTags(chatMessage));
@@ -234,8 +203,7 @@ public class CollectionGoalsPlugin extends Plugin
 			}
 		}
 
-//Valuable Drop (future proof for number of items, such as zenytes)
-
+		//Valuable Drop (future proof for number of items, such as zenytes)
 		m = VALUABLE_DROP_PATTERN.matcher(chatMessage);
 		if (m.matches())
 		{
@@ -243,16 +211,13 @@ public class CollectionGoalsPlugin extends Plugin
 			updateLogDataFromChatMessage(valuableDropName);
 		}
 
-
 		//Untradable Drops
-
 		m = UNTRADEABLE_DROP_PATTERN.matcher(chatMessage);
 		if (m.matches())
 		{
 			String untradeableDropName = m.group(1);
 			updateLogDataFromChatMessage(untradeableDropName);
 		}
-
 
 		if (chatMessage.startsWith(COLLECTION_LOG_TEXT) && client.getVarbitValue(Varbits.COLLECTION_LOG_NOTIFICATION) == 1)
 		{
@@ -261,6 +226,63 @@ public class CollectionGoalsPlugin extends Plugin
 		}
 
 	}
+
+	@Subscribe
+	public void onWidgetLoaded(WidgetLoaded widgetLoaded)
+	{
+		if (widgetLoaded.getGroupId() == WidgetID.ADVENTURE_LOG_ID)
+		{
+			Widget adventureLog = client.getWidget(WidgetInfo.ADVENTURE_LOG);
+			if (adventureLog == null)
+			{
+				return;
+			}
+
+			// Children are rendered on tick after widget load. Invoke later to prevent null children on adventure log widget
+			clientThread.invokeLater(() -> {
+				Matcher adventureLogUser = ADVENTURE_LOG_TITLE_PATTERN.matcher(adventureLog.getChild(1).getText());
+				if (adventureLogUser.find())
+				{
+					isPohOwner = adventureLogUser.group(1).equals(client.getLocalPlayer().getName());
+				}
+			});
+		}
+	}
+
+	@Subscribe
+	public void onScriptPostFired(ScriptPostFired scriptPostFired)
+	{
+		if (scriptPostFired.getScriptId() == COLLECTION_LOG_DRAW_LIST_SCRIPT_ID)
+		{
+			clientThread.invokeLater(this::getEntry);
+		}
+	}
+
+	@Provides
+	CollectionGoalsConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(CollectionGoalsConfig.class);
+	}
+
+
+
+
+
+
+
+
+
+
+
+	public void update()
+	{
+		clientThread.invokeLater(() -> {
+			SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
+		});
+		dataManager.saveData();
+	}
+
+
 
 
 	//from RL properties (unavailable on login screen)
@@ -284,7 +306,10 @@ public class CollectionGoalsPlugin extends Plugin
 
 	public int getGreatestKillcount(String boss, CollectionGoalsItem item)
 	{
-		return getKillcount(boss) >= getKillcountLogData(item) ? getKillcount(boss) : getKillcountLogData(item);
+		int lootTrackerCount = getLootTrackerKills(boss);
+		int logDataCount = getKillcountLogData(item);
+		int runeliteCount = getKillcount(boss);
+		return runeliteCount > (lootTrackerCount>logDataCount ? lootTrackerCount:logDataCount) ? runeliteCount:((lootTrackerCount>logDataCount) ? lootTrackerCount:logDataCount);
 	}
 
 
@@ -399,41 +424,6 @@ public class CollectionGoalsPlugin extends Plugin
 	}
 
 
-	// when collection log is open, check to see what we have as goals, and update
-
-	//log warning if no data inferred?
-
-
-	@Subscribe
-	public void onWidgetLoaded(WidgetLoaded widgetLoaded)
-	{
-		if (widgetLoaded.getGroupId() == WidgetID.ADVENTURE_LOG_ID)
-		{
-			Widget adventureLog = client.getWidget(WidgetInfo.ADVENTURE_LOG);
-			if (adventureLog == null)
-			{
-				return;
-			}
-
-			// Children are rendered on tick after widget load. Invoke later to prevent null children on adventure log widget
-			clientThread.invokeLater(() -> {
-				Matcher adventureLogUser = ADVENTURE_LOG_TITLE_PATTERN.matcher(adventureLog.getChild(1).getText());
-				if (adventureLogUser.find())
-				{
-					isPohOwner = adventureLogUser.group(1).equals(client.getLocalPlayer().getName());
-				}
-			});
-		}
-	}
-
-	@Subscribe
-	public void onScriptPostFired(ScriptPostFired scriptPostFired)
-	{
-		if (scriptPostFired.getScriptId() == COLLECTION_LOG_DRAW_LIST_SCRIPT_ID)
-		{
-			clientThread.invokeLater(this::getEntry);
-		}
-	}
 
 
 	/**
@@ -489,7 +479,6 @@ public class CollectionGoalsPlugin extends Plugin
 				return false;
 			}
 		}
-
 		return true;
 	}
 
@@ -514,18 +503,14 @@ public class CollectionGoalsPlugin extends Plugin
 					.split("<")[0];
 			}
 		}
-
 		return null;
 	}
 
 
-	//TODO: use this to log items
 	private void updateEntryItems(Widget categoryHead)
 	{
-
 		String entryTitle = categoryHead.getDynamicChildren()[0].getText();
 
-		//todo - figure out how to update based on collection log message
 		Widget itemsContainer = client.getWidget(WidgetInfo.COLLECTION_LOG_ENTRY_ITEMS);
 
 		if (itemsContainer == null)
@@ -588,7 +573,6 @@ public class CollectionGoalsPlugin extends Plugin
 	{
 
 		int id = widgetItem.getItemId();
-		String name = itemManager.getItemComposition(id).getName();
 		int quantity = (widgetItem.getOpacity() == 0 ? widgetItem.getItemQuantity() : 0);
 
 		for (int i = 0; i < getItems().size(); i++)
@@ -597,9 +581,10 @@ public class CollectionGoalsPlugin extends Plugin
 			{
 				for (int j = 0; j < getItems().get(i).getUserLogData().size(); j++)
 				{
-					if (getItems().get(i).getUserLogData().get(j).getSource().equalsIgnoreCase(entryTitle))
+					String source = getItems().get(i).getUserLogData().get(j).getSource();
+					if (source.equalsIgnoreCase(entryTitle) || entryTitle.equalsIgnoreCase("Miscellaneous"))
 					{
-						getItems().get(i).getUserLogData().set(j, new CollectionGoalsLogItem(id, entryTitle, quantity, mainKillcount, alternateKillcount));
+						getItems().get(i).getUserLogData().set(j, new CollectionGoalsLogItem(id, source, quantity, mainKillcount, alternateKillcount));
 						return;
 					}
 				}
@@ -659,16 +644,30 @@ public class CollectionGoalsPlugin extends Plugin
 
 	public int getLootTrackerKills(String npc)
 	{
-		String lootTrackerJson = configManager.getRSProfileConfiguration(LOOT_TRACKER, DROPS_PREFIX + npc, String.class);
-
-		if (lootTrackerJson == null || lootTrackerJson.equals("[]"))
+		if (isLoggedIn())
 		{
-			return -1;
-		}
 
-		JsonObject body = gson.fromJson(lootTrackerJson, JsonObject.class);
-		return body.get("kills").getAsInt();
+			String lootTrackerJson = configManager.getRSProfileConfiguration(LOOT_TRACKER, DROPS_PREFIX + npc, String.class);
+			if (lootTrackerJson == null || lootTrackerJson.equals("[]"))
+			{
+				return -1;
+			}
+			JsonObject body = gson.fromJson(lootTrackerJson, JsonObject.class);
+			return body.get("kills").getAsInt();
+		}
+		return -1;
 	}
 
-
+	private void lookupHiscores() throws IOException
+	{
+		// TODO - this is a placeholder for future enhancements
+        final HiscoreResult result = hiscoreClient.lookup(client.getLocalPlayer().getName());
+        result.getSkill(HiscoreSkill.CLUE_SCROLL_BEGINNER);
+        result.getSkill(HiscoreSkill.CLUE_SCROLL_EASY);
+        result.getSkill(HiscoreSkill.CLUE_SCROLL_MEDIUM);
+        result.getSkill(HiscoreSkill.CLUE_SCROLL_HARD);
+        result.getSkill(HiscoreSkill.CLUE_SCROLL_ELITE);
+        result.getSkill(HiscoreSkill.CLUE_SCROLL_MASTER);
+        result.getSkill(HiscoreSkill.CLUE_SCROLL_ALL);
+	}
 }

@@ -1,16 +1,15 @@
-package com.collectiongoals;
-
-import net.runelite.api.ItemID;
+package com.collectiongoals.utils;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import net.runelite.api.ItemID;
 
 public class CollectionGoalsItems
 {
 
 
-	static List<CollectionGoalsItem> ALL_ITEMS = new ArrayList<CollectionGoalsItem>()
+	public static List<CollectionGoalsItem> ALL_ITEMS = new ArrayList<CollectionGoalsItem>()
 	{
 	};
 
@@ -42,11 +41,12 @@ public class CollectionGoalsItems
 		ALL_ITEMS.add(new CollectionGoalsItem("Steam battlestaff", ItemID.STEAM_BATTLESTAFF, "K'ril Tsutsaroth", "1/127"));
 		ALL_ITEMS.add(new CollectionGoalsItem("Zamorak hilt", ItemID.ZAMORAK_HILT, "K'ril Tsutsaroth", "1/508"));
 
-
-		// MULTIPLE SOURCES
-		//ALL_ITEMS.add(new CollectionGoalsItem("Dragon pickaxe", ItemID.DRAGON_PICKAXE, "Multiple", "Multiple Sources"));
+		ALL_ITEMS.add(new CollectionGoalsItem("Dragon warhammer", ItemID.DRAGON_WARHAMMER, "Lizardman shaman", "1/5000"));
 
 
+
+
+		//Multiple Sources
 		ALL_ITEMS.add(new CollectionGoalsItem("Dragon pickaxe", ItemID.DRAGON_PICKAXE, new ArrayList<CollectionGoalsSource>()
 		{{
 			add(new CollectionGoalsSource("Callisto", "1/170.7"));
