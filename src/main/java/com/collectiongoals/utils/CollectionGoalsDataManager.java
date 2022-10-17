@@ -19,6 +19,7 @@ import net.runelite.client.game.ItemManager;
 public class CollectionGoalsDataManager
 {
 	private static final String USER_LOG_DATA = "userLogData";
+	private static final String GROUP_SORT_DATA = "groupSortData";
 
 	private final CollectionGoalsPlugin plugin;
 	private final ConfigManager configManager;
@@ -28,6 +29,9 @@ public class CollectionGoalsDataManager
 
 	private final Type userLogDataType = new TypeToken<ArrayList<CollectionGoalsLogItem>>()	{}.getType();
 	private List<CollectionGoalsLogItem> userLogData = new ArrayList<>();
+
+	private final Type groupSortDataType = new TypeToken<ArrayList<CollectionGoalsGroupSort>>()	{}.getType();
+	private List<CollectionGoalsGroupSort> groupSortData = new ArrayList<>();
 
 	@Inject
 	public CollectionGoalsDataManager(CollectionGoalsPlugin plugin, ConfigManager configManager, ItemManager itemManager, Gson gson)
@@ -61,10 +65,31 @@ public class CollectionGoalsDataManager
 			}
 		}
 
+		groupSortData.clear();
+		String groupJson = configManager.getConfiguration(CONFIG_GROUP, GROUP_SORT_DATA);
+
+		if (groupJson == null || groupJson.equals("[]"))
+		{
+			plugin.setGroupSort(new ArrayList<>());
+		}
+		else
+		{
+			try
+			{
+				groupSortData = (gson.fromJson(groupJson, groupSortDataType));
+				plugin.setGroupSort(groupSortData);
+			}
+			catch (Exception e)
+			{
+				log.error("Exception occurred while loading purchase progress data", e);
+				plugin.setGroupSort(new ArrayList<>());
+			}
+		}
 	}
 
 	public void saveData()
 	{
+		//User Log Data
 		userLogData.clear();
 		for (CollectionGoalsItem item : plugin.getItems())
 		{
@@ -75,6 +100,12 @@ public class CollectionGoalsDataManager
 		}
 		final String itemsJson = gson.toJson(userLogData);
 		configManager.setConfiguration(CONFIG_GROUP, USER_LOG_DATA, itemsJson);
+
+		//Group Data
+		//groupSortData.clear();
+		//groupSortData = plugin.getGroupSort();
+		final String groupJson = gson.toJson(plugin.getGroupSort());
+		configManager.setConfiguration(CONFIG_GROUP, GROUP_SORT_DATA, groupJson);
 
 	}
 

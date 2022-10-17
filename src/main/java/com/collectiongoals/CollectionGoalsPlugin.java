@@ -2,6 +2,7 @@ package com.collectiongoals;
 
 import com.collectiongoals.panels.CollectionGoalsPluginPanel;
 import com.collectiongoals.utils.CollectionGoalsDataManager;
+import com.collectiongoals.utils.CollectionGoalsGroupSort;
 import com.collectiongoals.utils.CollectionGoalsItem;
 import com.collectiongoals.utils.CollectionGoalsItems;
 import com.collectiongoals.utils.CollectionGoalsLogItem;
@@ -95,6 +96,10 @@ public class CollectionGoalsPlugin extends Plugin
 	@Getter
 	@Setter
 	private List<CollectionGoalsItem> items = new ArrayList<>();
+
+	@Getter
+	@Setter
+	private List<CollectionGoalsGroupSort> groupSort = new ArrayList<>();
 
 	@Inject
 	private CollectionGoalsDataManager dataManager;
@@ -367,6 +372,8 @@ public class CollectionGoalsPlugin extends Plugin
 			if (!containsItem(item))
 			{
 				items.add(item);
+				groupSort.add(new CollectionGoalsGroupSort(item.getId()));
+
 				dataManager.saveData();
 				SwingUtilities.invokeLater(() ->
 				{
@@ -385,6 +392,14 @@ public class CollectionGoalsPlugin extends Plugin
 	{
 		clientThread.invokeLater(() -> {
 			items.remove(item);
+
+
+			int groupIndex = groupIndexByItem(item);
+			if (groupIndex>=0)
+			{
+				groupSort.remove(groupIndex);
+			}
+
 			dataManager.saveData();
 			SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
 		});
@@ -669,5 +684,14 @@ public class CollectionGoalsPlugin extends Plugin
         result.getSkill(HiscoreSkill.CLUE_SCROLL_ELITE);
         result.getSkill(HiscoreSkill.CLUE_SCROLL_MASTER);
         result.getSkill(HiscoreSkill.CLUE_SCROLL_ALL);
+	}
+
+	public int groupIndexByItem(CollectionGoalsItem item) {
+		for (int i=0; i<groupSort.size(); i++) {
+			if (item.getId() == groupSort.get(i).getId()) {
+				return i;
+			}
+		}
+		return -1;
 	}
 }

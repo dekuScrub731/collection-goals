@@ -20,6 +20,8 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -52,6 +54,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 	private static final ImageIcon CANCEL_ICON;
 	private static final ImageIcon CANCEL_HOVER_ICON;
 	private static final int MAX_SEARCH_ITEMS = 100;
+	private static final int TITLE_PADDING = 5;
 
 	private final CollectionGoalsPlugin plugin;
 	private CollectionGoalsConfig config;
@@ -66,15 +69,17 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 	private final JLabel addItem = new JLabel(ADD_ICON);
 	private final JLabel cancelItem = new JLabel(CANCEL_ICON);
 	private final JPanel centerPanel = new JPanel(centerCard);
-	private final JPanel progressPanel = new JPanel();
-	private final JPanel completePanel = new JPanel();
+	//private final JPanel progressPanel = new JPanel();
+	//private final JPanel completePanel = new JPanel();
 	private final JPanel searchPanel = new JPanel(new BorderLayout());
 	private final JPanel searchCenterPanel = new JPanel(searchCard);
 	private final JPanel searchResultsPanel = new JPanel();
+	private final JPanel pWrapper = new JPanel(new GridBagLayout());
+	private final GridBagConstraints constraints = new GridBagConstraints();
 	private final IconTextField searchBar = new IconTextField();
 	private final PluginErrorPanel searchErrorPanel = new PluginErrorPanel();
-	private final GridBagConstraints constraints = new GridBagConstraints();
-	private final GridBagConstraints constraints2 = new GridBagConstraints();
+
+
 
 	private final List<CollectionGoalsItem> searchItems = new ArrayList<>();
 
@@ -164,24 +169,13 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 		titlePanel.add(title, BorderLayout.WEST);
 		titlePanel.add(actions, BorderLayout.EAST);
 
-		// Goals Panels (In Progress, and Complete)
-		progressPanel.setLayout(new GridBagLayout());
-		completePanel.setLayout(new GridBagLayout());
-
 		// Panel Wrapper Constraints
-		GridBagConstraints pWrapperConstraints = new GridBagConstraints();
-		pWrapperConstraints.fill = GridBagConstraints.HORIZONTAL;
-		pWrapperConstraints.anchor = GridBagConstraints.NORTH;
-		pWrapperConstraints.gridwidth = 1;
-		pWrapperConstraints.weightx = 1;
-		pWrapperConstraints.gridx = 0;
-		pWrapperConstraints.gridy = 0;
-
-		// Panel Wrapper
-		JPanel pWrapper = new JPanel(new GridBagLayout());
-		pWrapper.add(progressPanel, pWrapperConstraints);
-		pWrapperConstraints.gridy++;
-		pWrapper.add(completePanel, pWrapperConstraints);
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.anchor = GridBagConstraints.NORTH;
+		constraints.gridwidth = 1;
+		constraints.weightx = 1;
+		constraints.gridx = 0;
+		constraints.gridy = 0;
 
 		// Progress Wrapper Container (needed to align to top for some reason)
 		JPanel pWrapperContainer = new JPanel(new BorderLayout());
@@ -204,12 +198,6 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 		resultsWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
 		resultsWrapper.getVerticalScrollBar().setPreferredSize(new Dimension(12, 0));
 		resultsWrapper.getVerticalScrollBar().setBorder(new EmptyBorder(5, 5, 0, 0));
-
-		constraints.fill = GridBagConstraints.HORIZONTAL;
-		constraints.gridwidth = 1;
-		constraints.weightx = 1;
-		constraints.gridx = 0;
-		constraints.gridy = 0;
 
 		/* Search Error Panel */
 		searchErrorPanel.setContent("Collection Log Search",
@@ -288,6 +276,9 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 
 	private void processResults(List<CollectionGoalsItem> results)
 	{
+
+		GridBagConstraints rConstraints = myConstraints();
+
 		searchItems.clear();
 		searchCard.show(searchCenterPanel, RESULTS_PANEL);
 
@@ -322,14 +313,14 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 					JPanel marginWrapper = new JPanel(new BorderLayout());
 					marginWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
 					marginWrapper.add(panel, BorderLayout.NORTH);
-					searchResultsPanel.add(marginWrapper, constraints);
+					searchResultsPanel.add(marginWrapper, rConstraints);
 				}
 				else
 				{
-					searchResultsPanel.add(panel, constraints);
+					searchResultsPanel.add(panel, rConstraints);
 				}
 
-				constraints.gridy++;
+				rConstraints.gridy++;
 			}
 			validate();
 		});
@@ -337,36 +328,37 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 
 	public void updateProgressPanels()
 	{
-		progressPanel.removeAll();
-		completePanel.removeAll();
+		pWrapper.removeAll();
+		List<CollectionGoalsItem> completeItems = new ArrayList<>();
+		List<CollectionGoalsItem> inProgressItems = new ArrayList<>();
 
-		constraints.gridy++;
 
 		for (CollectionGoalsItem item : plugin.getItems())
 		{
-			CollectionGoalsItemPanel panel = new CollectionGoalsItemPanel(plugin, config, item);
-
-
 			if (item.isObtained())
 			{
-				JPanel marginWrapper = new JPanel(new BorderLayout());
-				marginWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
-				marginWrapper.add(panel, BorderLayout.NORTH);
-				completePanel.add(marginWrapper, constraints);
-
+				completeItems.add(item);
 			}
 			else
 			{
-				JPanel marginWrapper = new JPanel(new BorderLayout());
-				marginWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
-				marginWrapper.add(panel, BorderLayout.NORTH);
-				progressPanel.add(marginWrapper, constraints);
+				inProgressItems.add(item);
 			}
-
-			constraints.gridy++;
 		}
 
+		// Panel Wrapper: Index 0
+		pWrapper.add(new CollectionGoalsGroupPanel(plugin, config, "In Progress", inProgressItems), constraints);
+		constraints.gridy++;
+
+		// Panel Wrapper: Index 1+
+		JPanel marginWrapper = new JPanel(new BorderLayout());
+		marginWrapper.setBorder(new EmptyBorder(10, 0, 0, 0));
+		marginWrapper.add(new CollectionGoalsGroupPanel(plugin, config, "Complete", completeItems), BorderLayout.NORTH);
+		pWrapper.add(marginWrapper, constraints);
+
+		// Placeholder for other groups
+
 		validate();
+
 	}
 
 
@@ -412,6 +404,42 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 			}
 		}
 		return result;
+	}
+
+	private GridBagConstraints myConstraints() {
+		GridBagConstraints constraints = new GridBagConstraints();
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.gridwidth = 1;
+		constraints.weightx = 1;
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		return constraints;
+	}
+
+	private JPanel collectionGoalGroup(String titleText) {
+
+		JPanel logTitle = new JPanel();
+		logTitle.setLayout(new BoxLayout(logTitle, BoxLayout.X_AXIS));
+		logTitle.setBorder(new EmptyBorder(7, 7, 7, 7));
+		logTitle.setBackground(ColorScheme.DARKER_GRAY_COLOR.darker());
+		logTitle.setPreferredSize(new Dimension(PluginPanel.PANEL_WIDTH, 30));
+
+		JLabel newTitle = new JLabel();
+		newTitle.setText(titleText);
+		newTitle.setForeground(Color.WHITE);
+		//newTitle.setBorder(new EmptyBorder(0, 0, 10, 40));
+		newTitle.setMinimumSize(new Dimension(1, newTitle.getPreferredSize().height));
+
+		logTitle.add(newTitle);
+
+		logTitle.add(Box.createRigidArea(new Dimension(TITLE_PADDING, 0)));
+		logTitle.add(Box.createHorizontalGlue());
+		logTitle.add(Box.createRigidArea(new Dimension(TITLE_PADDING, 0)));
+
+
+
+		return logTitle;
+
 	}
 
 }
