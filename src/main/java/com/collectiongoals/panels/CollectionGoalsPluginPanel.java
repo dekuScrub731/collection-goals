@@ -3,9 +3,7 @@ package com.collectiongoals.panels;
 import com.collectiongoals.CollectionGoalsConfig;
 import com.collectiongoals.CollectionGoalsPlugin;
 import com.collectiongoals.utils.CollectionGoalsItem;
-import static com.collectiongoals.utils.CollectionGoalsItems.ALL_ITEMS;
 import com.google.inject.Inject;
-
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -29,7 +27,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
-
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.RuneLiteConfig;
 import net.runelite.client.game.ItemManager;
@@ -78,7 +75,6 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 	private final GridBagConstraints constraints = new GridBagConstraints();
 	private final IconTextField searchBar = new IconTextField();
 	private final PluginErrorPanel searchErrorPanel = new PluginErrorPanel();
-
 
 
 	private final List<CollectionGoalsItem> searchItems = new ArrayList<>();
@@ -170,7 +166,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 		titlePanel.add(actions, BorderLayout.EAST);
 
 		// Panel Wrapper Constraints
-		constraints.fill = GridBagConstraints.HORIZONTAL;
+		//constraints.fill = GridBagConstraints.HORIZONTAL;
 		constraints.anchor = GridBagConstraints.NORTH;
 		constraints.gridwidth = 1;
 		constraints.weightx = 1;
@@ -395,7 +391,7 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 
 		List<CollectionGoalsItem> result = new ArrayList<>();
 
-		for (CollectionGoalsItem item : ALL_ITEMS)
+		for (CollectionGoalsItem item : plugin.ALL_ITEMS)
 		{
 			final String name = item.getName();
 			if (name.replaceAll("[^a-zA-Z0-9\\s]", "").toLowerCase().contains(itemName))
@@ -406,7 +402,8 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 		return result;
 	}
 
-	private GridBagConstraints myConstraints() {
+	private GridBagConstraints myConstraints()
+	{
 		GridBagConstraints constraints = new GridBagConstraints();
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		constraints.gridwidth = 1;
@@ -416,7 +413,8 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 		return constraints;
 	}
 
-	private JPanel collectionGoalGroup(String titleText) {
+	private JPanel collectionGoalGroup(String titleText)
+	{
 
 		JPanel logTitle = new JPanel();
 		logTitle.setLayout(new BoxLayout(logTitle, BoxLayout.X_AXIS));
@@ -435,7 +433,6 @@ public class CollectionGoalsPluginPanel extends PluginPanel
 		logTitle.add(Box.createRigidArea(new Dimension(TITLE_PADDING, 0)));
 		logTitle.add(Box.createHorizontalGlue());
 		logTitle.add(Box.createRigidArea(new Dimension(TITLE_PADDING, 0)));
-
 
 
 		return logTitle;

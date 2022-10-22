@@ -2,7 +2,6 @@ package com.collectiongoals.panels;
 
 import com.collectiongoals.CollectionGoalsPlugin;
 import com.collectiongoals.utils.CollectionGoalsItem;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -15,7 +14,6 @@ import java.util.List;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-
 import net.runelite.client.ui.ColorScheme;
 
 public class CollectionGoalsResultPanel extends JPanel

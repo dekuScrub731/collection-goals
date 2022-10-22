@@ -1,12 +1,9 @@
 package com.collectiongoals;
 
 import static com.collectiongoals.CollectionGoalsPlugin.CONFIG_GROUP;
-
 import java.awt.Color;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;

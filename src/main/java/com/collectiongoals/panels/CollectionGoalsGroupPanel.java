@@ -9,7 +9,6 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.util.List;
-import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -36,8 +35,9 @@ public class CollectionGoalsGroupPanel extends JPanel
 		JPanel logTitle = new JPanel();
 		logTitle.setLayout(new BoxLayout(logTitle, BoxLayout.X_AXIS));
 		logTitle.setBorder(new EmptyBorder(7, 7, 7, 7));
-		logTitle.setBackground(ColorScheme.DARKER_GRAY_COLOR.darker());
-		logTitle.setPreferredSize(new Dimension(PluginPanel.PANEL_WIDTH, 30));
+		logTitle.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		logTitle.setPreferredSize(new Dimension(PluginPanel.PANEL_WIDTH - 12, 30));
+
 
 		JLabel newTitle = new JLabel();
 		newTitle.setText(groupName);
@@ -46,9 +46,9 @@ public class CollectionGoalsGroupPanel extends JPanel
 
 		logTitle.add(newTitle);
 
-		logTitle.add(Box.createRigidArea(new Dimension(TITLE_PADDING, 0)));
-		logTitle.add(Box.createHorizontalGlue());
-		logTitle.add(Box.createRigidArea(new Dimension(TITLE_PADDING, 0)));
+		//logTitle.add(Box.createRigidArea(new Dimension(TITLE_PADDING, 0)));
+		//logTitle.add(Box.createHorizontalGlue());
+		//logTitle.add(Box.createRigidArea(new Dimension(TITLE_PADDING, 0)));
 
 
 		add(logTitle);

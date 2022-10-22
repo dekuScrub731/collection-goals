@@ -4,14 +4,11 @@ import com.collectiongoals.CollectionGoalsPlugin;
 import static com.collectiongoals.CollectionGoalsPlugin.CONFIG_GROUP;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
-
 import lombok.extern.slf4j.Slf4j;
-
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 
@@ -102,11 +99,13 @@ public class CollectionGoalsDataManager
 		configManager.setConfiguration(CONFIG_GROUP, USER_LOG_DATA, itemsJson);
 
 		//Group Data
-		//groupSortData.clear();
-		//groupSortData = plugin.getGroupSort();
-		final String groupJson = gson.toJson(plugin.getGroupSort());
+		groupSortData.clear();
+		for (CollectionGoalsGroupSort item : plugin.getGroupSort())
+		{
+			groupSortData.add(item);
+		}
+		final String groupJson = gson.toJson(groupSortData);
 		configManager.setConfiguration(CONFIG_GROUP, GROUP_SORT_DATA, groupJson);
-
 	}
 
 	private void convertIds()
@@ -178,6 +177,11 @@ public class CollectionGoalsDataManager
 			tempLogItems.add(item);
 		}
 		return tempLogItems;
+	}
+
+	public void logData() {
+		log.info(gson.toJson(userLogData));
+		log.info(gson.toJson(groupSortData));
 	}
 
 }

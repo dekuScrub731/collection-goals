@@ -14,11 +14,11 @@ public class CollectionGoalsGroupSort
 	private String group;
 	private int sortOrder;
 
-	public CollectionGoalsGroupSort(int id) {
-		this.id=id;
+	public CollectionGoalsGroupSort(int id)
+	{
+		this.id = id;
 		this.group = "";
 		this.sortOrder = -1;
 	}
-
 
 }

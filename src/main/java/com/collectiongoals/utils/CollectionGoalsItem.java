@@ -1,11 +1,9 @@
 package com.collectiongoals.utils;
 
 
-import static com.collectiongoals.utils.CollectionGoalsItems.ALL_ITEMS;
-
+import static com.collectiongoals.CollectionGoalsPlugin.ALL_ITEMS;
 import java.util.ArrayList;
 import java.util.List;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -43,7 +41,16 @@ public class CollectionGoalsItem
 		this.name = name;
 		this.id = id;
 		this.sources = sources;
-		this.rateString = "Multiple";
+
+		if (sources.size() == 1)
+		{
+			this.rateString = sources.get(0).getRate();
+		}
+		else
+		{
+			this.rateString = "Multiple Sources";
+		}
+
 
 		List<CollectionGoalsLogItem> userData = new ArrayList<CollectionGoalsLogItem>()
 		{

@@ -2,18 +2,16 @@ package com.collectiongoals;
 
 import com.collectiongoals.panels.CollectionGoalsPluginPanel;
 import com.collectiongoals.utils.CollectionGoalsDataManager;
+import com.collectiongoals.utils.CollectionGoalsDefinitionList;
 import com.collectiongoals.utils.CollectionGoalsGroupSort;
 import com.collectiongoals.utils.CollectionGoalsItem;
-import com.collectiongoals.utils.CollectionGoalsItems;
 import com.collectiongoals.utils.CollectionGoalsLogItem;
 import com.collectiongoals.utils.CollectionGoalsSource;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.inject.Provides;
-
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,11 +22,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -64,12 +60,14 @@ import net.runelite.client.util.Text;
 public class CollectionGoalsPlugin extends Plugin
 {
 
+	public static final List<CollectionGoalsItem> ALL_ITEMS = CollectionGoalsDefinitionList.getCollectionGoalsAllItemList(CollectionGoalsDefinitionList.ALL_DEFINITIONS);
 	public static final String CONFIG_GROUP = "collectiongoals";
 	private static final String PLUGIN_NAME = "Collection Goals";
 	private static final String ICON_IMAGE = "/panel_icon.png";
 	private static final String KILLCOUNT = "killcount";
 	private static final String LOOT_TRACKER = "loottracker";
 	private static final String DROPS_PREFIX = "drops_NPC_";
+
 
 	private static final Pattern ADVENTURE_LOG_TITLE_PATTERN = Pattern.compile("The Exploits of (.+)");
 	private static final int ADVENTURE_LOG_COLLECTION_LOG_SELECTED_VARBIT_ID = 12061;
@@ -84,6 +82,7 @@ public class CollectionGoalsPlugin extends Plugin
 	private static final int COLLECTION_LOG_ACTIVE_TAB_SPRITE_ID = 2283;
 
 	private boolean isPohOwner = false;
+
 
 	@Getter
 	@Setter
@@ -134,6 +133,7 @@ public class CollectionGoalsPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
+
 		panel = injector.getInstance(CollectionGoalsPluginPanel.class);
 
 		final BufferedImage icon = ImageUtil.loadImageResource(CollectionGoalsPlugin.class, ICON_IMAGE);
@@ -154,6 +154,8 @@ public class CollectionGoalsPlugin extends Plugin
 			dataManager.loadData();
 			SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
 		});
+
+
 	}
 
 	@Override
@@ -269,26 +271,13 @@ public class CollectionGoalsPlugin extends Plugin
 		return configManager.getConfig(CollectionGoalsConfig.class);
 	}
 
-
-
-
-
-
-
-
-
-
-
 	public void update()
 	{
 		clientThread.invokeLater(() -> {
 			SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
+			dataManager.saveData();
 		});
-		dataManager.saveData();
 	}
-
-
-
 
 	//from RL properties (unavailable on login screen)
 	public int getKillcount(String dropSource)
@@ -314,7 +303,7 @@ public class CollectionGoalsPlugin extends Plugin
 		int lootTrackerCount = getLootTrackerKills(boss);
 		int logDataCount = getKillcountLogData(item);
 		int runeliteCount = getKillcount(boss);
-		return runeliteCount > (lootTrackerCount>logDataCount ? lootTrackerCount:logDataCount) ? runeliteCount:((lootTrackerCount>logDataCount) ? lootTrackerCount:logDataCount);
+		return runeliteCount > (lootTrackerCount > logDataCount ? lootTrackerCount : logDataCount) ? runeliteCount : ((lootTrackerCount > logDataCount) ? lootTrackerCount : logDataCount);
 	}
 
 
@@ -322,7 +311,7 @@ public class CollectionGoalsPlugin extends Plugin
 	{
 		float percentComplete = 0f;
 
-		CollectionGoalsItem baseItem = CollectionGoalsItems.getBaseItemByName(itemName);
+		CollectionGoalsItem baseItem = getBaseItemByName(itemName);
 		CollectionGoalsItem userItem = getUserItemByName(itemName);
 
 
@@ -346,7 +335,7 @@ public class CollectionGoalsPlugin extends Plugin
 	{
 		float percentComplete = 0f;
 
-		CollectionGoalsItem baseItem = CollectionGoalsItems.getBaseItemByName(itemName);
+		CollectionGoalsItem baseItem = getBaseItemByName(itemName);
 		CollectionGoalsItem userItem = getUserItemByName(itemName);
 
 		if (baseItem.getSources().size() > 1)
@@ -367,12 +356,15 @@ public class CollectionGoalsPlugin extends Plugin
 
 	public void addItem(CollectionGoalsItem item)
 	{
+		int itemId = item.getId();
+		CollectionGoalsGroupSort groupSortItem = new CollectionGoalsGroupSort(itemId);
+
 		clientThread.invokeLater(() ->
 		{
 			if (!containsItem(item))
 			{
 				items.add(item);
-				groupSort.add(new CollectionGoalsGroupSort(item.getId()));
+				groupSort.add(groupSortItem);
 
 				dataManager.saveData();
 				SwingUtilities.invokeLater(() ->
@@ -385,17 +377,20 @@ public class CollectionGoalsPlugin extends Plugin
 			{
 				SwingUtilities.invokeLater(() -> panel.containsItemWarning());
 			}
+
 		});
+
+
 	}
 
 	public void removeItem(CollectionGoalsItem item)
 	{
+		int groupIndex = groupIndexByItem(item);
+
 		clientThread.invokeLater(() -> {
 			items.remove(item);
 
-
-			int groupIndex = groupIndexByItem(item);
-			if (groupIndex>=0)
+			if (groupIndex >= 0)
 			{
 				groupSort.remove(groupIndex);
 			}
@@ -437,8 +432,6 @@ public class CollectionGoalsPlugin extends Plugin
 			return Double.parseDouble(ratio);
 		}
 	}
-
-
 
 
 	/**
@@ -676,22 +669,39 @@ public class CollectionGoalsPlugin extends Plugin
 	private void lookupHiscores() throws IOException
 	{
 		// TODO - this is a placeholder for future enhancements
-        final HiscoreResult result = hiscoreClient.lookup(client.getLocalPlayer().getName());
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_BEGINNER);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_EASY);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_MEDIUM);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_HARD);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_ELITE);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_MASTER);
-        result.getSkill(HiscoreSkill.CLUE_SCROLL_ALL);
+		final HiscoreResult result = hiscoreClient.lookup(client.getLocalPlayer().getName());
+		result.getSkill(HiscoreSkill.CLUE_SCROLL_BEGINNER);
+		result.getSkill(HiscoreSkill.CLUE_SCROLL_EASY);
+		result.getSkill(HiscoreSkill.CLUE_SCROLL_MEDIUM);
+		result.getSkill(HiscoreSkill.CLUE_SCROLL_HARD);
+		result.getSkill(HiscoreSkill.CLUE_SCROLL_ELITE);
+		result.getSkill(HiscoreSkill.CLUE_SCROLL_MASTER);
+		result.getSkill(HiscoreSkill.CLUE_SCROLL_ALL);
 	}
 
-	public int groupIndexByItem(CollectionGoalsItem item) {
-		for (int i=0; i<groupSort.size(); i++) {
-			if (item.getId() == groupSort.get(i).getId()) {
+	public int groupIndexByItem(CollectionGoalsItem item)
+	{
+		for (int i = 0; i < groupSort.size(); i++)
+		{
+			if (item.getId() == groupSort.get(i).getId())
+			{
 				return i;
 			}
 		}
 		return -1;
 	}
+
+
+	public CollectionGoalsItem getBaseItemByName(String name)
+	{
+		for (CollectionGoalsItem item : ALL_ITEMS)
+		{
+			if (item.getName().equals(name))
+			{
+				return item;
+			}
+		}
+		return null;
+	}
+
 }

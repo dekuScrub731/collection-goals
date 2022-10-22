@@ -5,7 +5,6 @@ import com.collectiongoals.CollectionGoalsConfig;
 import static com.collectiongoals.CollectionGoalsConfig.progressMethod.DROP_CHANCE;
 import com.collectiongoals.CollectionGoalsPlugin;
 import com.collectiongoals.utils.CollectionGoalsItem;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -19,7 +18,6 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.util.ImageUtil;
 
@@ -74,14 +72,9 @@ public class CollectionGoalsItemPanel extends JPanel
 		itemName.setText(item.getName());
 		rightPanel.add(itemName);
 
-		// Drop Rate
-		JLabel dropRate = new JLabel();
-		dropRate.setText(item.getRateString());
-		dropRate.setForeground(ColorScheme.GRAND_EXCHANGE_PRICE);
-		rightPanel.add(dropRate);
 
-		// Source/KC
-		JLabel killCount = new JLabel();
+		// Source
+		JLabel sourceInfo = new JLabel();
 
 		// Determine percent progress relative to drop rate first
 		// This allows for color coding to come into play
@@ -119,7 +112,7 @@ public class CollectionGoalsItemPanel extends JPanel
 		String sourceName = item.getSources().get(0).getName();
 		int kc = plugin.getGreatestKillcount(sourceName, item);
 
-		String killInfo = sourceName + " (" + String.valueOf(kc) + " kills)";
+		String killInfo = " (" + kc + " kills)";
 
 		if (item.isObtained())
 		{
@@ -127,16 +120,24 @@ public class CollectionGoalsItemPanel extends JPanel
 			percentText = "Complete";
 			progressPercent = percent;
 			barColor = config.completeColor();
-			killInfo = sourceName;
+			killInfo = "";
 		}
 
 		if (item.getSources().size() > 1)
 		{
-			killInfo = "Multiple Sources";
+			sourceName = "";
+			killInfo = "";
 		}
 
-		killCount.setText(killInfo);
-		rightPanel.add(killCount);
+		// Drop Rate
+		JLabel dropRate = new JLabel();
+		dropRate.setText(item.getRateString() + killInfo);
+		dropRate.setForeground(ColorScheme.GRAND_EXCHANGE_PRICE);
+		rightPanel.add(dropRate);
+
+
+		sourceInfo.setText(sourceName);
+		rightPanel.add(sourceInfo);
 
 		// Progress
 		JLabel progressLabel = new JLabel();
