@@ -43,6 +43,10 @@ public class CollectionGoalsDefinitionList
 		ALL_DEFINITIONS.add(new CollectionGoalsDefinition("Dragon pickaxe", ItemID.DRAGON_PICKAXE, "Venenatis", "1/170.7"));
 		ALL_DEFINITIONS.add(new CollectionGoalsDefinition("Dragon pickaxe", ItemID.DRAGON_PICKAXE, "Vet'ion", "1/170.7"));
 
+		//Test Clue Items
+		ALL_DEFINITIONS.add(new CollectionGoalsDefinition("Ranger boots", ItemID.RANGER_BOOTS, "Clue Scroll (Medium)", "1/1133"));
+
+
 	}
 
 	public static List<CollectionGoalsItem> getCollectionGoalsAllItemList(List<CollectionGoalsDefinition> collectionGoalsDefinitionList)

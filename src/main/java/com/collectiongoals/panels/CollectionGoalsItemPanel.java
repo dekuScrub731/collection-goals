@@ -112,7 +112,12 @@ public class CollectionGoalsItemPanel extends JPanel
 		String sourceName = item.getSources().get(0).getName();
 		int kc = plugin.getGreatestKillcount(sourceName, item);
 
-		String killInfo = " (" + kc + " kills)";
+		String killNoun = "kills";
+		if (item.getSources().get(0).getName().contains("Clue Scroll")) {
+			killNoun = "clues";
+		}
+
+		String killInfo = " (" + kc + " " + killNoun + ")";
 
 		if (item.isObtained())
 		{

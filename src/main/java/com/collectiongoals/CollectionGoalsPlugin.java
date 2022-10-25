@@ -32,7 +32,9 @@ import net.runelite.api.Varbits;
 import net.runelite.api.WorldType;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ScriptPostFired;
+import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetID;
@@ -68,6 +70,22 @@ public class CollectionGoalsPlugin extends Plugin
 	private static final String LOOT_TRACKER = "loottracker";
 	private static final String DROPS_PREFIX = "drops_NPC_";
 
+	private static final int CLUE_ROLLS_BEGINNER = 2;
+	private static final int CLUE_ROLLS_EASY = 3;
+	private static final int CLUE_ROLLS_MEDIUM = 4;
+	private static final int CLUE_ROLLS_HARD = 5;
+	private static final int CLUE_ROLLS_ELITE = 5;
+	private static final int CLUE_ROLLS_MASTER = 6;
+
+	private static final String CLUE_SCROLL_BEGINNER = "Clue Scroll (Beginner)";
+	private static final String CLUE_SCROLL_EASY = "Clue Scroll (Easy)";
+	private static final String CLUE_SCROLL_MEDIUM = "Clue Scroll (Medium)";
+	private static final String CLUE_SCROLL_HARD = "Clue Scroll (Hard)";
+	private static final String CLUE_SCROLL_ELITE = "Clue Scroll (Elite)";
+	private static final String CLUE_SCROLL_MASTER = "Clue Scroll (Master)";
+
+	private static final int SUPPLY_CRATE_ROLLS = 2;
+
 
 	private static final Pattern ADVENTURE_LOG_TITLE_PATTERN = Pattern.compile("The Exploits of (.+)");
 	private static final int ADVENTURE_LOG_COLLECTION_LOG_SELECTED_VARBIT_ID = 12061;
@@ -83,6 +101,13 @@ public class CollectionGoalsPlugin extends Plugin
 
 	private boolean isPohOwner = false;
 
+	private boolean hiscoresLoaded = false;
+	private int beginnerClueCount = 0;
+	private int easyClueCount = 0;
+	private int mediumClueCount = 0;
+	private int hardClueCount = 0;
+	private int eliteClueCount = 0;
+	private int masterClueCount = 0;
 
 	@Getter
 	@Setter
@@ -147,6 +172,8 @@ public class CollectionGoalsPlugin extends Plugin
 
 		clientToolbar.addNavigation(navButton);
 
+
+
 		this.dataManager = new CollectionGoalsDataManager(this, configManager, itemManager, gson);
 
 		clientThread.invokeLater(() ->
@@ -156,7 +183,9 @@ public class CollectionGoalsPlugin extends Plugin
 		});
 
 
+
 	}
+
 
 	@Override
 	protected void shutDown() throws Exception
@@ -165,7 +194,7 @@ public class CollectionGoalsPlugin extends Plugin
 	}
 
 	@Subscribe
-	public void onGameStateChanged(GameStateChanged gameStateChanged)
+	public void onGameStateChanged(GameStateChanged gameStateChanged) throws IOException
 	{
 		setLoggedIn(gameStateChanged.getGameState() == GameState.LOGGED_IN);
 
@@ -257,6 +286,24 @@ public class CollectionGoalsPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onWidgetClosed(WidgetClosed widgetClosed)
+	{
+		if (widgetClosed.getGroupId() == WidgetID.LOGIN_CLICK_TO_PLAY_GROUP_ID)
+		{
+			clientThread.invokeLater(() -> {
+				try
+				{
+					getTreasureTrailsHiScores();
+				}
+				catch (IOException e)
+				{
+					throw new RuntimeException(e);
+				}
+			});
+		}
+	}
+
+	@Subscribe
 	public void onScriptPostFired(ScriptPostFired scriptPostFired)
 	{
 		if (scriptPostFired.getScriptId() == COLLECTION_LOG_DRAW_LIST_SCRIPT_ID)
@@ -273,6 +320,16 @@ public class CollectionGoalsPlugin extends Plugin
 
 	public void update()
 	{
+		//TODO - this was added 937 10/22
+		for (CollectionGoalsItem item : getItems())
+		{
+			for (CollectionGoalsLogItem logItem : item.getUserLogData())
+			{
+				logItem.setKillCount(getGreatestKillcount(logItem.getSource(), item));
+			}
+		}
+
+
 		clientThread.invokeLater(() -> {
 			SwingUtilities.invokeLater(() -> panel.updateProgressPanels());
 			dataManager.saveData();
@@ -288,24 +345,60 @@ public class CollectionGoalsPlugin extends Plugin
 	}
 
 	//from user log data (potentially stale)
-	public int getKillcountLogData(CollectionGoalsItem item)
+	public int getKillcountLogData(String boss, CollectionGoalsItem item)
 	{
-		if (item == null || item.getSources().size() != 1)
+		if (item == null)
 		{
 			return -1;
 		}
-		Integer killCount = item.getUserLogData().get(0).getKillCount();
-		return killCount == null ? 0 : killCount;
+
+		for (CollectionGoalsLogItem logItem : item.getUserLogData())
+		{
+			if (logItem.getSource().equalsIgnoreCase(boss))
+			{
+				Integer killCount = logItem.getKillCount();
+				return killCount == null ? 0 : killCount;
+			}
+		}
+
+		return -1;
+
 	}
 
 	public int getGreatestKillcount(String boss, CollectionGoalsItem item)
 	{
-		int lootTrackerCount = getLootTrackerKills(boss);
-		int logDataCount = getKillcountLogData(item);
-		int runeliteCount = getKillcount(boss);
-		return runeliteCount > (lootTrackerCount > logDataCount ? lootTrackerCount : logDataCount) ? runeliteCount : ((lootTrackerCount > logDataCount) ? lootTrackerCount : logDataCount);
-	}
 
+		int lootTrackerCount = getLootTrackerKills(boss);
+		int logDataCount = getKillcountLogData(boss, item);
+		int runeliteCount = getKillcount(boss);
+		int greatest = runeliteCount > (lootTrackerCount > logDataCount ? lootTrackerCount : logDataCount) ? runeliteCount : ((lootTrackerCount > logDataCount) ? lootTrackerCount : logDataCount);
+
+		int clueHiScore = 0;
+
+		switch (boss)
+		{
+			case CLUE_SCROLL_BEGINNER:
+				clueHiScore = beginnerClueCount;
+				break;
+			case CLUE_SCROLL_EASY:
+				clueHiScore = easyClueCount;
+				break;
+			case CLUE_SCROLL_MEDIUM:
+				clueHiScore = mediumClueCount;
+				break;
+			case CLUE_SCROLL_HARD:
+				clueHiScore = hardClueCount;
+				break;
+			case CLUE_SCROLL_ELITE:
+				clueHiScore = eliteClueCount;
+				break;
+			case CLUE_SCROLL_MASTER:
+				clueHiScore = masterClueCount;
+				break;
+		}
+
+		return greatest > clueHiScore ? greatest : clueHiScore;
+	}
 
 	public float getProgressRelativeToDropRate(String itemName)
 	{
@@ -317,14 +410,13 @@ public class CollectionGoalsPlugin extends Plugin
 
 		if (baseItem.getSources().size() == 1)
 		{
-			percentComplete = (float) (parseDropRate(baseItem.getSources().get(0).getRate()) * (float) getGreatestKillcount(baseItem.getSources().get(0).getName(), userItem));
+			percentComplete = (float) (parseDropRate(baseItem.getSources().get(0)) * (float) getGreatestKillcount(baseItem.getSources().get(0).getName(), userItem));
 		}
 		else
 		{
 			for (CollectionGoalsSource source : baseItem.getSources())
 			{
-				//todo: this math needs looking at as well for more than one source
-				percentComplete += parseDropRate(source.getRate()) * (float) getGreatestKillcount(source.getName(), userItem);
+				percentComplete += parseDropRate(source) * (float) getGreatestKillcount(source.getName(), userItem);
 			}
 		}
 
@@ -335,22 +427,22 @@ public class CollectionGoalsPlugin extends Plugin
 	{
 		float percentComplete = 0f;
 
+		float percentNot = 1f;
+
 		CollectionGoalsItem baseItem = getBaseItemByName(itemName);
 		CollectionGoalsItem userItem = getUserItemByName(itemName);
 
-		if (baseItem.getSources().size() > 1)
+
+		for (CollectionGoalsSource source : baseItem.getSources())
 		{
-			return 0; //TODO: figure out how this math works...
-		}
-		else
-		{
-			int kc = getGreatestKillcount(baseItem.getSources().get(0).getName(), userItem);
-			if (kc == 0)
+			int kc = getGreatestKillcount(source.getName(), userItem);
+			double dropRate = parseDropRate(source);
+			if (kc > 0 && dropRate > 0)
 			{
-				return 0;
+				percentNot = (float) (percentNot * (Math.pow((1 - dropRate), kc)));
 			}
-			percentComplete = (float) Math.pow((1 - parseDropRate(baseItem.getSources().get(0).getRate())), kc);
 		}
+
 		return (1 - percentComplete) * 100f;
 	}
 
@@ -420,16 +512,42 @@ public class CollectionGoalsPlugin extends Plugin
 	}
 
 
-	double parseDropRate(String ratio)
+	double parseDropRate(CollectionGoalsSource source)
 	{
+		String ratio = source.getRate();
+		String name = source.getName();
+		int rolls = 1;
+
+		switch (name)
+		{
+			case CLUE_SCROLL_BEGINNER:
+				rolls = CLUE_ROLLS_BEGINNER;
+				break;
+			case CLUE_SCROLL_EASY:
+				rolls = CLUE_ROLLS_EASY;
+				break;
+			case CLUE_SCROLL_MEDIUM:
+				rolls = CLUE_ROLLS_MEDIUM;
+				break;
+			case CLUE_SCROLL_HARD:
+				rolls = CLUE_ROLLS_HARD;
+				break;
+			case CLUE_SCROLL_ELITE:
+				rolls = CLUE_ROLLS_ELITE;
+				break;
+			case CLUE_SCROLL_MASTER:
+				rolls = CLUE_ROLLS_MASTER;
+				break;
+		}
+
 		if (ratio.contains("/"))
 		{
 			String[] rat = ratio.split("/");
-			return Double.parseDouble(rat[0]) / Double.parseDouble(rat[1]);
+			return (rolls * Double.parseDouble(rat[0])) / Double.parseDouble(rat[1]);
 		}
 		else
 		{
-			return Double.parseDouble(ratio);
+			return 0;
 		}
 	}
 
@@ -666,18 +784,7 @@ public class CollectionGoalsPlugin extends Plugin
 		return -1;
 	}
 
-	private void lookupHiscores() throws IOException
-	{
-		// TODO - this is a placeholder for future enhancements
-		final HiscoreResult result = hiscoreClient.lookup(client.getLocalPlayer().getName());
-		result.getSkill(HiscoreSkill.CLUE_SCROLL_BEGINNER);
-		result.getSkill(HiscoreSkill.CLUE_SCROLL_EASY);
-		result.getSkill(HiscoreSkill.CLUE_SCROLL_MEDIUM);
-		result.getSkill(HiscoreSkill.CLUE_SCROLL_HARD);
-		result.getSkill(HiscoreSkill.CLUE_SCROLL_ELITE);
-		result.getSkill(HiscoreSkill.CLUE_SCROLL_MASTER);
-		result.getSkill(HiscoreSkill.CLUE_SCROLL_ALL);
-	}
+
 
 	public int groupIndexByItem(CollectionGoalsItem item)
 	{
@@ -704,4 +811,23 @@ public class CollectionGoalsPlugin extends Plugin
 		return null;
 	}
 
+
+	private void getTreasureTrailsHiScores() throws IOException
+	{
+		if (isLoggedIn() && !hiscoresLoaded)
+		{
+			hiscoresLoaded = true;
+			String currentUser = client.getLocalPlayer().getName();
+			if (currentUser != null && !currentUser.equalsIgnoreCase(""))
+			{
+				final HiscoreResult result = hiscoreClient.lookup(currentUser);
+				beginnerClueCount = result.getSkill(HiscoreSkill.CLUE_SCROLL_BEGINNER).getLevel();
+				easyClueCount = result.getSkill(HiscoreSkill.CLUE_SCROLL_EASY).getLevel();
+				mediumClueCount = result.getSkill(HiscoreSkill.CLUE_SCROLL_MEDIUM).getLevel();
+				hardClueCount = result.getSkill(HiscoreSkill.CLUE_SCROLL_HARD).getLevel();
+				eliteClueCount = result.getSkill(HiscoreSkill.CLUE_SCROLL_ELITE).getLevel();
+				masterClueCount = result.getSkill(HiscoreSkill.CLUE_SCROLL_MASTER).getLevel();
+			}
+		}
+	}
 }

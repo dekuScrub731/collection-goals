@@ -82,6 +82,8 @@ public class CollectionGoalsDataManager
 				plugin.setGroupSort(new ArrayList<>());
 			}
 		}
+
+		logData();
 	}
 
 	public void saveData()
